@@ -4,16 +4,23 @@ import { useState } from "react";
 import { ActionSelector } from "@/components/analysis/action-selector";
 import { ExpertSelector } from "@/components/analysis/expert-selector";
 import { AnalysisInput } from "@/components/analysis/analysis-input";
+import { CompanySelector } from "@/components/analysis/company-selector";
 import { Timeline } from "@/components/analysis/timeline";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ActionType, Contribution, UserQuestion } from "@/types";
+import { ActionType, Contribution, UserQuestion, Company } from "@/types";
 import { Play, Download } from "lucide-react";
 
 export default function HomePage() {
+  // TODO: Load companies from Supabase
+  const [companies] = useState<Company[]>([]);
+
   const [userInput, setUserInput] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [selectedActions, setSelectedActions] = useState<ActionType[]>([]);
-  const [selectedExperts, setSelectedExperts] = useState<string[]>([]);
+  const [selectedExperts, setSelectedExperts] = useState<string[]>([
+    "super-consultant-onepoint", // Pre-select Super Consultant
+  ]);
   const [userInvolved, setUserInvolved] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [timeline, setTimeline] = useState<Contribution[]>([]);
@@ -40,6 +47,7 @@ export default function HomePage() {
           userInput,
           selectedActions,
           selectedExperts,
+          selectedCompanyId,
           userInvolved,
         }),
       });
@@ -89,7 +97,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="h-full p-8">
+    <div className="h-full overflow-y-auto p-8">
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
         <div>
@@ -104,6 +112,11 @@ export default function HomePage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Left Column */}
           <div className="space-y-6">
+            <CompanySelector
+              companies={companies}
+              selectedCompanyId={selectedCompanyId}
+              onChange={setSelectedCompanyId}
+            />
             <AnalysisInput value={userInput} onChange={setUserInput} />
             <ActionSelector
               selectedActions={selectedActions}
@@ -152,6 +165,16 @@ export default function HomePage() {
                 </>
               )}
             </Button>
+
+            {companies.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center">
+                💡 Créez des entreprises dans{" "}
+                <a href="/company" className="text-primary hover:underline">
+                  Mes Entreprises
+                </a>{" "}
+                pour enrichir vos analyses
+              </p>
+            )}
           </div>
         </div>
 
