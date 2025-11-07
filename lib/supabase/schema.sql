@@ -51,6 +51,28 @@ CREATE TABLE IF NOT EXISTS user_questions (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Company table
+CREATE TABLE IF NOT EXISTS company (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  industry TEXT NOT NULL,
+  description TEXT NOT NULL,
+  size TEXT,
+  location TEXT,
+  website TEXT,
+  founded_year INTEGER,
+  mission TEXT,
+  vision TEXT,
+  values JSONB DEFAULT '[]',
+  target_market TEXT,
+  competitors JSONB DEFAULT '[]',
+  unique_selling_points JSONB DEFAULT '[]',
+  glossary JSONB NOT NULL DEFAULT '[]',
+  custom_context TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Insert default LLM config
 INSERT INTO llm_configs (provider, model, temperature, max_tokens)
 VALUES ('openai', 'gpt-4-turbo-preview', 0.7, 4000)

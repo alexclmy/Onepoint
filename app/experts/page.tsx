@@ -7,12 +7,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Search, Edit, Trash2, Save } from "lucide-react";
 
 export default function ExpertsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [experts] = useState<Expert[]>(PREDEFINED_EXPERTS);
+  const [experts, setExperts] = useState<Expert[]>(PREDEFINED_EXPERTS);
+  const [editingExpert, setEditingExpert] = useState<Expert | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const filteredExperts = experts.filter(
     (expert) =>
@@ -24,8 +43,44 @@ export default function ExpertsPage() {
   const customExperts = filteredExperts.filter((e) => e.isCustom);
   const predefinedExperts = filteredExperts.filter((e) => !e.isCustom);
 
+  const handleEdit = (expert: Expert) => {
+    setEditingExpert({ ...expert });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingExpert) {
+      setExperts(experts.map((e) => (e.id === editingExpert.id ? editingExpert : e)));
+      setIsEditDialogOpen(false);
+      setEditingExpert(null);
+      // TODO: Save to Supabase if custom expert
+    }
+  };
+
+  const handleDelete = (expertId: string) => {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cet expert ?")) {
+      setExperts(experts.filter((e) => e.id !== expertId));
+      // TODO: Delete from Supabase
+    }
+  };
+
+  const handleCreateNew = () => {
+    const newExpert: Expert = {
+      id: `custom-${Date.now()}`,
+      name: "",
+      role: "",
+      expertise: "",
+      tone: "pragmatic",
+      systemPrompt: "",
+      isCustom: true,
+      color: "#009DDF",
+    };
+    setEditingExpert(newExpert);
+    setIsEditDialogOpen(true);
+  };
+
   return (
-    <div className="h-full p-8">
+    <div className="h-full overflow-y-auto p-8">
       <div className="mx-auto max-w-6xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -35,7 +90,7 @@ export default function ExpertsPage() {
               Gérez vos experts prédéfinis et créez des experts personnalisés
             </p>
           </div>
-          <Button>
+          <Button onClick={handleCreateNew}>
             <Plus className="mr-2 h-4 w-4" />
             Créer un Expert
           </Button>
@@ -58,7 +113,13 @@ export default function ExpertsPage() {
             <h2 className="mb-4 text-xl font-semibold">Experts Personnalisés</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {customExperts.map((expert) => (
-                <ExpertCard key={expert.id} expert={expert} isCustom />
+                <ExpertCard
+                  key={expert.id}
+                  expert={expert}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  isCustom
+                />
               ))}
             </div>
           </div>
@@ -72,19 +133,150 @@ export default function ExpertsPage() {
           <ScrollArea className="h-[600px]">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {predefinedExperts.map((expert) => (
-                <ExpertCard key={expert.id} expert={expert} />
+                <ExpertCard
+                  key={expert.id}
+                  expert={expert}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
               ))}
             </div>
           </ScrollArea>
         </div>
+
+        {/* Edit Dialog */}
+        {editingExpert && (
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingExpert.name ? `Modifier ${editingExpert.name}` : "Nouvel Expert"}
+                </DialogTitle>
+                <DialogDescription>
+                  Configurez les détails de l'expert et ses instructions
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nom</Label>
+                    <Input
+                      id="name"
+                      value={editingExpert.name}
+                      onChange={(e) =>
+                        setEditingExpert({ ...editingExpert, name: e.target.value })
+                      }
+                      placeholder="Ex: Marie Dubois"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Rôle</Label>
+                    <Input
+                      id="role"
+                      value={editingExpert.role}
+                      onChange={(e) =>
+                        setEditingExpert({ ...editingExpert, role: e.target.value })
+                      }
+                      placeholder="Ex: Expert DevOps"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expertise">Expertise</Label>
+                  <Input
+                    id="expertise"
+                    value={editingExpert.expertise}
+                    onChange={(e) =>
+                      setEditingExpert({ ...editingExpert, expertise: e.target.value })
+                    }
+                    placeholder="Ex: Infrastructure cloud, CI/CD, conteneurisation"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tone">Tone of Voice</Label>
+                    <Select
+                      value={editingExpert.tone}
+                      onValueChange={(value) =>
+                        setEditingExpert({
+                          ...editingExpert,
+                          tone: value as Expert["tone"],
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="formal">Formel</SelectItem>
+                        <SelectItem value="creative">Créatif</SelectItem>
+                        <SelectItem value="analytical">Analytique</SelectItem>
+                        <SelectItem value="strategic">Stratégique</SelectItem>
+                        <SelectItem value="pragmatic">Pragmatique</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="color">Couleur</Label>
+                    <Input
+                      id="color"
+                      type="color"
+                      value={editingExpert.color || "#009DDF"}
+                      onChange={(e) =>
+                        setEditingExpert({ ...editingExpert, color: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="systemPrompt">Instructions (System Prompt)</Label>
+                  <Textarea
+                    id="systemPrompt"
+                    value={editingExpert.systemPrompt}
+                    onChange={(e) =>
+                      setEditingExpert({ ...editingExpert, systemPrompt: e.target.value })
+                    }
+                    placeholder="Tu es [Nom], expert en [domaine]..."
+                    className="min-h-[200px] font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Définissez le comportement, l'expertise et le style de réponse de l'expert
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Annuler
+                </Button>
+                <Button onClick={handleSaveEdit}>
+                  <Save className="mr-2 h-4 w-4" />
+                  Enregistrer
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
 }
 
-function ExpertCard({ expert, isCustom }: { expert: Expert; isCustom?: boolean }) {
+function ExpertCard({
+  expert,
+  onEdit,
+  onDelete,
+  isCustom,
+}: {
+  expert: Expert;
+  onEdit: (expert: Expert) => void;
+  onDelete: (id: string) => void;
+  isCustom?: boolean;
+}) {
   return (
-    <Card>
+    <Card className="transition-shadow hover:shadow-md">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -94,16 +286,26 @@ function ExpertCard({ expert, isCustom }: { expert: Expert; isCustom?: boolean }
             />
             <CardTitle className="text-base">{expert.name}</CardTitle>
           </div>
-          {isCustom && (
-            <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onEdit(expert)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            {isCustom && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive"
+                onClick={() => onDelete(expert.id)}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         <CardDescription className="text-sm font-medium text-primary">
           {expert.role}
@@ -111,11 +313,14 @@ function ExpertCard({ expert, isCustom }: { expert: Expert; isCustom?: boolean }
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">{expert.expertise}</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Badge variant="outline" className="text-xs">
             {expert.tone}
           </Badge>
           {isCustom && <Badge className="text-xs">Custom</Badge>}
+          {expert.id === "super-consultant-onepoint" && (
+            <Badge className="bg-primary text-xs">⭐ Super Consultant</Badge>
+          )}
         </div>
       </CardContent>
     </Card>

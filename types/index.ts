@@ -91,3 +91,30 @@ export interface UserQuestion {
   answer?: string;
   answeredAt?: Date;
 }
+
+// Company Types
+export interface GlossaryTerm {
+  term: string;
+  definition: string;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  industry: string;
+  description: string;
+  size?: string;
+  location?: string;
+  website?: string;
+  foundedYear?: number;
+  mission?: string;
+  vision?: string;
+  values?: string[];
+  targetMarket?: string;
+  competitors?: string[];
+  uniqueSellingPoints?: string[];
+  glossary: GlossaryTerm[];
+  customContext?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
