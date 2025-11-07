@@ -68,7 +68,7 @@ const productManagementActions: NavSection = {
 
 const configNavigation: NavItem[] = [
   {
-    name: "Mon Entreprise",
+    name: "Mes Entreprises",
     href: "/company",
     icon: Building2,
   },
