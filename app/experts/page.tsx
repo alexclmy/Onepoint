@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase/client";
 import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
 import { Expert } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,13 +26,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Edit, Trash2, Save } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Save, Loader2 } from "lucide-react";
 
 export default function ExpertsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [customExperts, setCustomExperts] = useState<Expert[]>([]);
   const [experts, setExperts] = useState<Expert[]>(PREDEFINED_EXPERTS);
   const [editingExpert, setEditingExpert] = useState<Expert | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    loadCustomExperts();
+  }, []);
+
+  useEffect(() => {
+    // Merge predefined and custom experts
+    setExperts([...PREDEFINED_EXPERTS, ...customExperts]);
+  }, [customExperts]);
+
+  const loadCustomExperts = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("experts")
+        .select("*")
+        .eq("is_custom", true)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Erreur lors du chargement:", error);
+        return;
+      }
+
+      const transformedData = (data || []).map((expert) => ({
+        id: expert.id,
+        name: expert.name,
+        role: expert.role,
+        expertise: expert.expertise,
+        tone: expert.tone as Expert["tone"],
+        systemPrompt: expert.system_prompt,
+        isCustom: expert.is_custom,
+        color: expert.color || "#009DDF",
+        avatar: expert.avatar,
+      }));
+
+      setCustomExperts(transformedData);
+    } catch (error) {
+      console.error("Erreur:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredExperts = experts.filter(
     (expert) =>
@@ -40,27 +87,118 @@ export default function ExpertsPage() {
       expert.expertise.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const customExperts = filteredExperts.filter((e) => e.isCustom);
-  const predefinedExperts = filteredExperts.filter((e) => !e.isCustom);
+  const filteredCustomExperts = filteredExperts.filter((e) => e.isCustom);
+  const filteredPredefinedExperts = filteredExperts.filter((e) => !e.isCustom);
 
   const handleEdit = (expert: Expert) => {
     setEditingExpert({ ...expert });
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveEdit = () => {
-    if (editingExpert) {
-      setExperts(experts.map((e) => (e.id === editingExpert.id ? editingExpert : e)));
+  const handleSaveEdit = async () => {
+    if (!editingExpert) return;
+
+    // Validation
+    if (!editingExpert.name || !editingExpert.role || !editingExpert.expertise || !editingExpert.systemPrompt) {
+      alert("Veuillez remplir tous les champs obligatoires : nom, rôle, expertise et instructions.");
+      return;
+    }
+
+    // If it's a predefined expert being edited, just update local state (no DB save)
+    if (!editingExpert.isCustom) {
+      alert("Note : Les modifications des experts prédéfinis ne sont pas sauvegardées.");
       setIsEditDialogOpen(false);
       setEditingExpert(null);
-      // TODO: Save to Supabase if custom expert
+      return;
+    }
+
+    // It's a custom expert - save to Supabase
+    try {
+      setIsSaving(true);
+
+      const supabaseData = {
+        name: editingExpert.name,
+        role: editingExpert.role,
+        expertise: editingExpert.expertise,
+        tone: editingExpert.tone,
+        system_prompt: editingExpert.systemPrompt,
+        is_custom: true,
+        color: editingExpert.color || "#009DDF",
+        avatar: editingExpert.avatar || null,
+      };
+
+      const isNewExpert = editingExpert.id.startsWith("custom-");
+
+      if (isNewExpert) {
+        // Insert new custom expert
+        const { data, error } = await supabase
+          .from("experts")
+          .insert([supabaseData])
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Erreur lors de la création:", error);
+          alert(`Erreur: ${error.message}`);
+          return;
+        }
+
+        // Update with real ID from database
+        if (data) {
+          const newExpert = {
+            ...editingExpert,
+            id: data.id,
+          };
+          setCustomExperts([...customExperts, newExpert]);
+        }
+      } else {
+        // Update existing custom expert
+        const { error } = await supabase
+          .from("experts")
+          .update(supabaseData)
+          .eq("id", editingExpert.id);
+
+        if (error) {
+          console.error("Erreur lors de la mise à jour:", error);
+          alert(`Erreur: ${error.message}`);
+          return;
+        }
+
+        setCustomExperts(
+          customExperts.map((e) => (e.id === editingExpert.id ? editingExpert : e))
+        );
+      }
+
+      setIsEditDialogOpen(false);
+      setEditingExpert(null);
+      alert(isNewExpert ? "Expert créé avec succès !" : "Expert mis à jour avec succès !");
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert("Une erreur s'est produite lors de l'enregistrement.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = (expertId: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cet expert ?")) {
-      setExperts(experts.filter((e) => e.id !== expertId));
-      // TODO: Delete from Supabase
+  const handleDelete = async (expertId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cet expert ?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("experts").delete().eq("id", expertId);
+
+      if (error) {
+        console.error("Erreur lors de la suppression:", error);
+        alert(`Erreur: ${error.message}`);
+        return;
+      }
+
+      setCustomExperts(customExperts.filter((e) => e.id !== expertId));
+      alert("Expert supprimé avec succès !");
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert("Une erreur s'est produite lors de la suppression.");
     }
   };
 
@@ -78,6 +216,27 @@ export default function ExpertsPage() {
     setEditingExpert(newExpert);
     setIsEditDialogOpen(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-full overflow-y-auto p-8">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Gestion des Experts</h1>
+            <p className="mt-2 text-muted-foreground">
+              Gérez vos experts prédéfinis et créez des experts personnalisés
+            </p>
+          </div>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="mt-4 text-sm text-muted-foreground">Chargement des experts...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-y-auto p-8">
@@ -108,11 +267,11 @@ export default function ExpertsPage() {
         </div>
 
         {/* Custom Experts */}
-        {customExperts.length > 0 && (
+        {filteredCustomExperts.length > 0 && (
           <div>
             <h2 className="mb-4 text-xl font-semibold">Experts Personnalisés</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {customExperts.map((expert) => (
+              {filteredCustomExperts.map((expert) => (
                 <ExpertCard
                   key={expert.id}
                   expert={expert}
@@ -128,11 +287,11 @@ export default function ExpertsPage() {
         {/* Predefined Experts */}
         <div>
           <h2 className="mb-4 text-xl font-semibold">
-            Experts Prédéfinis ({predefinedExperts.length})
+            Experts Prédéfinis ({filteredPredefinedExperts.length})
           </h2>
           <ScrollArea className="h-[600px]">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {predefinedExperts.map((expert) => (
+              {filteredPredefinedExperts.map((expert) => (
                 <ExpertCard
                   key={expert.id}
                   expert={expert}
@@ -248,12 +407,25 @@ export default function ExpertsPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                  disabled={isSaving}
+                >
                   Annuler
                 </Button>
-                <Button onClick={handleSaveEdit}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Enregistrer
+                <Button onClick={handleSaveEdit} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Enregistrer
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>

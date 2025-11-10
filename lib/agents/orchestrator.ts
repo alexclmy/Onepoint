@@ -8,6 +8,7 @@ export interface OrchestrationConfig {
   selectedActions: ActionType[];
   selectedExperts: string[]; // Expert IDs
   userInvolved: boolean;
+  allExperts?: Expert[]; // Optional: provide all experts (predefined + custom)
   onContribution?: (contribution: Contribution) => void;
   onQuestion?: (question: UserQuestion) => Promise<string | null>;
   model?: string;
@@ -36,7 +37,10 @@ export class AgentOrchestrator {
   }
 
   private initializeAgents(): void {
-    const experts = PREDEFINED_EXPERTS.filter((e) =>
+    // Use provided experts or default to predefined experts
+    const expertPool = this.config.allExperts || PREDEFINED_EXPERTS;
+
+    const experts = expertPool.filter((e) =>
       this.config.selectedExperts.includes(e.id)
     );
 

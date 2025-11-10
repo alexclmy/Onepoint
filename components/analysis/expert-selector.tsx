@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase/client";
 import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
+import { Expert } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +18,43 @@ interface ExpertSelectorProps {
 
 export function ExpertSelector({ selectedExperts, onChange }: ExpertSelectorProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [allExperts, setAllExperts] = useState<Expert[]>(PREDEFINED_EXPERTS);
 
-  const filteredExperts = PREDEFINED_EXPERTS.filter(
+  useEffect(() => {
+    loadCustomExperts();
+  }, []);
+
+  const loadCustomExperts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("experts")
+        .select("*")
+        .eq("is_custom", true);
+
+      if (error) {
+        console.error("Erreur lors du chargement des experts custom:", error);
+        return;
+      }
+
+      const customExperts = (data || []).map((expert) => ({
+        id: expert.id,
+        name: expert.name,
+        role: expert.role,
+        expertise: expert.expertise,
+        tone: expert.tone as Expert["tone"],
+        systemPrompt: expert.system_prompt,
+        isCustom: expert.is_custom,
+        color: expert.color || "#009DDF",
+        avatar: expert.avatar,
+      }));
+
+      setAllExperts([...PREDEFINED_EXPERTS, ...customExperts]);
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+  };
+
+  const filteredExperts = allExperts.filter(
     (expert) =>
       expert.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       expert.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -33,7 +70,7 @@ export function ExpertSelector({ selectedExperts, onChange }: ExpertSelectorProp
   };
 
   const selectAll = () => {
-    onChange(PREDEFINED_EXPERTS.map((e) => e.id));
+    onChange(allExperts.map((e) => e.id));
   };
 
   const clearAll = () => {
