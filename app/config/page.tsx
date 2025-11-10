@@ -1,26 +1,128 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Save } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 
 export default function ConfigPage() {
   const [config, setConfig] = useState({
+    id: "",
     provider: "openai",
     model: "gpt-4-turbo-preview",
     temperature: 0.7,
     maxTokens: 4000,
-    apiKey: "",
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    // TODO: Save config to database
-    console.log("Saving config:", config);
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("llm_configs")
+        .select("*")
+        .limit(1)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Erreur lors du chargement:", error);
+        return;
+      }
+
+      if (data) {
+        setConfig({
+          id: data.id,
+          provider: data.provider,
+          model: data.model,
+          temperature: parseFloat(data.temperature),
+          maxTokens: data.max_tokens,
+        });
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+
+      const supabaseData = {
+        provider: config.provider,
+        model: config.model,
+        temperature: config.temperature,
+        max_tokens: config.maxTokens,
+      };
+
+      if (config.id) {
+        const { error } = await supabase
+          .from("llm_configs")
+          .update(supabaseData)
+          .eq("id", config.id);
+
+        if (error) {
+          console.error("Erreur lors de la mise à jour:", error);
+          alert(`Erreur: ${error.message}`);
+          return;
+        }
+      } else {
+        const { data, error } = await supabase
+          .from("llm_configs")
+          .insert([supabaseData])
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Erreur lors de la création:", error);
+          alert(`Erreur: ${error.message}`);
+          return;
+        }
+
+        if (data) {
+          setConfig((prev) => ({ ...prev, id: data.id }));
+        }
+      }
+
+      alert("Configuration enregistrée avec succès !");
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert("Une erreur s'est produite lors de l'enregistrement.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-full p-8">
+        <div className="mx-auto max-w-2xl space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Configuration LLM</h1>
+            <p className="mt-2 text-muted-foreground">
+              Configurez les paramètres du modèle de langage
+            </p>
+          </div>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="mt-4 text-sm text-muted-foreground">Chargement de la configuration...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full p-8">
@@ -114,27 +216,26 @@ export default function ConfigPage() {
 
             <Separator />
 
-            {/* API Key */}
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">API Key (optionnel)</Label>
-              <Input
-                id="apiKey"
-                type="password"
-                value={config.apiKey}
-                onChange={(e) =>
-                  setConfig({ ...config, apiKey: e.target.value })
-                }
-                placeholder="sk-..."
-              />
-              <p className="text-xs text-muted-foreground">
-                Laissez vide pour utiliser la clé configurée en variable d&apos;environnement
+            {/* Info about API Key */}
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <p className="text-sm text-blue-900">
+                <strong>Note:</strong> La clé API OpenAI est configurée via les variables d&apos;environnement (OPENAI_API_KEY)
               </p>
             </div>
 
             {/* Save Button */}
-            <Button onClick={handleSave} className="w-full">
-              <Save className="mr-2 h-4 w-4" />
-              Enregistrer la Configuration
+            <Button onClick={handleSave} className="w-full" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enregistrement...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Enregistrer la Configuration
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
