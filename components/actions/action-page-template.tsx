@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { Company, ActionType } from "@/types";
 import { CompanySelector } from "@/components/analysis/company-selector";
 import { ExpertSelector } from "@/components/analysis/expert-selector";
+import { AnalysisResults } from "@/components/actions/analysis-results";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
+import { Sparkles, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
 interface ActionPageTemplateProps {
@@ -218,40 +219,11 @@ export function ActionPageTemplate({
         </div>
       </div>
 
-      {/* Analysis Progress Section */}
+      {/* Analysis Results */}
       {analysisStarted && (
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Analyse en cours...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  Analyse terminée
-                </>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {timelineEvents.length > 0 ? (
-              <div className="space-y-2">
-                {timelineEvents.map((event, index) => (
-                  <div key={index} className="text-sm text-muted-foreground">
-                    {event.type}: {event.message}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                L'analyse est en cours, veuillez patienter...
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <div className="mt-8">
+          <AnalysisResults isAnalyzing={isAnalyzing} events={timelineEvents} />
+        </div>
       )}
     </div>
   );
