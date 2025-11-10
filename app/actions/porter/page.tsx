@@ -1,6 +1,8 @@
 import { ActionPageTemplate } from "@/components/actions/action-page-template";
 import { Shield } from "lucide-react";
 
+
+export const dynamic = 'force-dynamic';
 export default function PorterPage() {
   return (
     <ActionPageTemplate

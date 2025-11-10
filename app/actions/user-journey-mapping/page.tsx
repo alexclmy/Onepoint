@@ -1,6 +1,8 @@
 import { ActionPageTemplate } from "@/components/actions/action-page-template";
 import { Route } from "lucide-react";
 
+
+export const dynamic = 'force-dynamic';
 export default function UserJourneyMappingPage() {
   return (
     <ActionPageTemplate

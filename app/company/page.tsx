@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Company, GlossaryTerm } from "@/types";
+import { supabase } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,12 +25,49 @@ export default function CompaniesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Form states for editing company
   const [newValue, setNewValue] = useState("");
   const [newCompetitor, setNewCompetitor] = useState("");
   const [newUSP, setNewUSP] = useState("");
   const [newGlossaryTerm, setNewGlossaryTerm] = useState({ term: "", definition: "" });
+
+  // Load companies from Supabase on mount
+  useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  const loadCompanies = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("company")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Erreur lors du chargement des entreprises:", error);
+        alert("Erreur lors du chargement des entreprises. Vérifiez votre connexion Supabase.");
+        return;
+      }
+
+      // Transform database dates to Date objects
+      const transformedData = (data || []).map((company) => ({
+        ...company,
+        createdAt: new Date(company.created_at),
+        updatedAt: new Date(company.updated_at),
+      }));
+
+      setCompanies(transformedData);
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert("Une erreur s'est produite lors du chargement des entreprises.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredCompanies = companies.filter((company) =>
     company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -58,26 +96,95 @@ export default function CompaniesPage() {
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (editingCompany) {
+  const handleSave = async () => {
+    if (!editingCompany) return;
+
+    // Validation
+    if (!editingCompany.name || !editingCompany.industry || !editingCompany.description) {
+      alert("Veuillez remplir les champs obligatoires: nom, secteur et description.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
       const exists = companies.find((c) => c.id === editingCompany.id);
+
+      // Prepare data for Supabase (remove frontend-only fields)
+      const supabaseData = {
+        name: editingCompany.name,
+        industry: editingCompany.industry,
+        description: editingCompany.description,
+        size: editingCompany.size || null,
+        location: editingCompany.location || null,
+        website: editingCompany.website || null,
+        founded_year: editingCompany.foundedYear || null,
+        mission: editingCompany.mission || null,
+        vision: editingCompany.vision || null,
+        values: editingCompany.values || [],
+        target_market: editingCompany.targetMarket || null,
+        competitors: editingCompany.competitors || [],
+        unique_selling_points: editingCompany.uniqueSellingPoints || [],
+        glossary: editingCompany.glossary || [],
+        custom_context: editingCompany.customContext || null,
+      };
+
       if (exists) {
-        setCompanies(companies.map((c) =>
-          c.id === editingCompany.id ? { ...editingCompany, updatedAt: new Date() } : c
-        ));
+        // Update existing company
+        const { error } = await supabase
+          .from("company")
+          .update(supabaseData)
+          .eq("id", editingCompany.id);
+
+        if (error) {
+          console.error("Erreur lors de la mise à jour:", error);
+          alert(`Erreur lors de la mise à jour: ${error.message}`);
+          return;
+        }
       } else {
-        setCompanies([...companies, editingCompany]);
+        // Insert new company
+        const { error } = await supabase.from("company").insert([supabaseData]);
+
+        if (error) {
+          console.error("Erreur lors de la création:", error);
+          alert(`Erreur lors de la création: ${error.message}`);
+          return;
+        }
       }
+
+      // Reload companies from database
+      await loadCompanies();
+
       setIsEditDialogOpen(false);
       setEditingCompany(null);
-      // TODO: Save to Supabase
+      alert(exists ? "Entreprise mise à jour avec succès !" : "Entreprise créée avec succès !");
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert("Une erreur s'est produite lors de l'enregistrement.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = (companyId: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cette entreprise ?")) {
+  const handleDelete = async (companyId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette entreprise ?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("company").delete().eq("id", companyId);
+
+      if (error) {
+        console.error("Erreur lors de la suppression:", error);
+        alert(`Erreur lors de la suppression: ${error.message}`);
+        return;
+      }
+
+      // Remove from local state
       setCompanies(companies.filter((c) => c.id !== companyId));
-      // TODO: Delete from Supabase
+      alert("Entreprise supprimée avec succès !");
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert("Une erreur s'est produite lors de la suppression.");
     }
   };
 
@@ -190,7 +297,16 @@ export default function CompaniesPage() {
         </div>
 
         {/* Companies List */}
-        {filteredCompanies.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="mt-4 text-sm text-muted-foreground">
+                Chargement des entreprises...
+              </p>
+            </CardContent>
+          </Card>
+        ) : filteredCompanies.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Building2 className="h-12 w-12 text-muted-foreground" />
@@ -572,12 +688,25 @@ export default function CompaniesPage() {
                 </div>
               </ScrollArea>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                  disabled={isSaving}
+                >
                   Annuler
                 </Button>
-                <Button onClick={handleSave}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Enregistrer
+                <Button onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Enregistrer
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>

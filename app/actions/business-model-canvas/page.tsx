@@ -1,6 +1,8 @@
 import { ActionPageTemplate } from "@/components/actions/action-page-template";
 import { Layers } from "lucide-react";
 
+
+export const dynamic = 'force-dynamic';
 export default function BusinessModelCanvasPage() {
   return (
     <ActionPageTemplate

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
 interface ActionPageTemplateProps {
   actionType: ActionType;
@@ -35,10 +36,33 @@ export function ActionPageTemplate({
   const [analysisStarted, setAnalysisStarted] = useState(false);
 
   useEffect(() => {
-    // TODO: Load companies from Supabase
-    // For now, using empty array
-    setCompanies([]);
+    loadCompanies();
   }, []);
+
+  const loadCompanies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("company")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Erreur lors du chargement des entreprises:", error);
+        return;
+      }
+
+      // Transform database dates to Date objects
+      const transformedData = (data || []).map((company) => ({
+        ...company,
+        createdAt: new Date(company.created_at),
+        updatedAt: new Date(company.updated_at),
+      }));
+
+      setCompanies(transformedData);
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+  };
 
   const handleLaunch = async () => {
     if (selectedExperts.length === 0) {
