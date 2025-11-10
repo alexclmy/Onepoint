@@ -1,229 +1,966 @@
-# Onepoint AI Consulting Tool
+# 🎯 Onepoint AI Consulting Tool
 
-Un outil de consulting stratégique propulsé par l'IA utilisant un système multi-agents pour des analyses approfondies.
+Un outil de consulting stratégique professionnel propulsé par l'IA, utilisant un système **multi-agents avancé** pour générer des analyses stratégiques de qualité consulting grâce à des débats d'experts IA.
 
-## 🚀 Fonctionnalités
+---
 
-### Analyses Stratégiques
-- **SWOT** : Analyse Forces, Faiblesses, Opportunités, Menaces
-- **PESTEL** : Analyse Politique, Économique, Socioculturelle, Technologique, Environnementale, Légale
-- **5 Forces de Porter** : Analyse de l'intensité concurrentielle
-- **Matrice BCG** : Positionnement du portefeuille produits
-- **Business Model Canvas** : Modélisation du modèle économique
-- **Value Proposition Canvas** : Alignement produit/marché
-- **Analyse Concurrentielle** : Étude approfondie des concurrents
-- **Market Sizing (TAM/SAM/SOM)** : Estimation de la taille du marché
-- **Feature Prioritization (RICE/MoSCoW)** : Priorisation des fonctionnalités
-- **User Journey Mapping** : Cartographie du parcours utilisateur
-- **Product Roadmap** : Feuille de route produit
-- **UX Audit** : Audit de l'expérience utilisateur
-- **Risk Assessment** : Évaluation des risques
-- **Rapport Complet** : Analyse exhaustive combinant plusieurs frameworks
+## 📋 Table des Matières
 
-### Système Multi-Agents
-24+ experts IA spécialisés dans différents domaines :
-- Expert RH
-- Expert Communication
-- Expert Produit
-- Expert UX
-- Expert Marketing
-- Expert Financier / CFO
-- Expert Stratégie d'Entreprise
-- Expert Innovation & R&D
-- Expert Business Model
-- Expert Transformation Digitale
-- Expert Supply Chain / Logistique
-- Expert IT / Systèmes d'Information
-- Expert Data & Analytics
-- Expert Qualité / Process
-- Expert Legal & Compliance
-- Expert Customer Success
-- Expert Sales / Commercial
-- Expert Pricing & Monétisation
-- Expert Competitive Intelligence
-- Expert Market Research
-- Expert Sustainability / RSE
-- Expert Change Management
-- Expert Risk Management
-- Expert Cybersécurité
+- [Vue d'ensemble](#vue-densemble)
+- [Fonctionnalités](#fonctionnalités)
+- [Système Multi-Agents](#système-multi-agents)
+  - [Architecture d'Orchestration](#architecture-dorchestration)
+  - [Processus Multi-Phases](#processus-multi-phases)
+  - [Flux des Appels LLM](#flux-des-appels-llm)
+- [Les 25 Experts IA](#les-25-experts-ia)
+- [Les 14 Analyses Stratégiques](#les-14-analyses-stratégiques)
+- [Stack Technique](#stack-technique)
+- [Architecture du Projet](#architecture-du-projet)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Utilisation](#utilisation)
+- [Base de Données](#base-de-données)
+- [Coûts et Performance](#coûts-et-performance)
+- [Déploiement](#déploiement)
+- [Roadmap](#roadmap)
 
-### Fonctionnalités Principales
-- ✅ Sélection multi-actions
-- ✅ Sélection multi-experts
-- ✅ Timeline des contributions en temps réel
-- ✅ Débats entre agents pour convergence
-- ✅ Interaction utilisateur (réponses aux questions des agents)
-- ✅ Génération de PDF avec branding
-- ✅ Gestion des experts personnalisés
-- ✅ Configuration LLM flexible
-- ✅ Historique des analyses
+---
+
+## 🌟 Vue d'ensemble
+
+**Onepoint AI Consulting Tool** est une application Next.js 15 qui révolutionne le consulting stratégique en combinant :
+
+- 🤖 **25 experts IA** avec des personnalités distinctes (personnages de fiction)
+- 📊 **14 types d'analyses stratégiques** (SWOT, PESTEL, Porter, BCG, etc.)
+- 💬 **Système de débat multi-agents** pour des analyses approfondies
+- 🏢 **Gestion multi-entreprises** avec contexte enrichi
+- 📄 **Génération de rapports PDF** professionnels
+- ⚙️ **Configuration LLM flexible** (modèle, température, tokens)
+- 🎨 **Interface moderne** avec shadcn/ui
+
+### Principe de Fonctionnement
+
+1. **Vous sélectionnez** : Une ou plusieurs analyses + Experts pertinents + Entreprise (optionnel)
+2. **Les experts débattent** : Chaque expert analyse, réagit aux autres, affine sa position sur plusieurs rounds
+3. **Consensus émerge** : Les multiples itérations permettent une convergence vers des insights de qualité
+4. **Rapport final** : Synthèse structurée avec recommandations actionnables
+
+---
+
+## ✨ Fonctionnalités
+
+### 🎯 Analyses Stratégiques
+- ✅ 14 types d'analyses professionnelles disponibles
+- ✅ Sélection multi-actions pour rapports combinés
+- ✅ Templates de sortie structurés
+- ✅ Estimation de durée par analyse
+
+### 👥 Système Multi-Agents Avancé
+- ✅ 24 experts prédéfinis (personnages de fiction)
+- ✅ Création d'experts personnalisés avec system prompts
+- ✅ Sélection multi-experts pour analyses croisées
+- ✅ Débats itératifs pour convergence vers un consensus
+- ✅ Contributions catégorisées (analyse, débat, consensus, synthèse)
+
+### 🏢 Gestion d'Entreprises
+- ✅ CRUD complet connecté à Supabase
+- ✅ Contexte enrichi (mission, vision, valeurs, concurrents, USPs)
+- ✅ Glossaire personnalisé de termes métier
+- ✅ Sélection d'entreprise lors des analyses
+
+### 📊 Résultats et Visualisation
+- ✅ Timeline des contributions en temps réel (SSE streaming)
+- ✅ Affichage des discussions entre experts
+- ✅ Contributions expansibles/collapsables
+- ✅ Badges de type de contribution
+- ✅ Rapport final structuré
+
+### 📄 Export et Sauvegarde
+- ✅ Génération PDF avec branding Onepoint
+- ✅ Historique des analyses (interface prête, sauvegarde à implémenter)
+- ✅ Téléchargement des rapports
+
+### ⚙️ Configuration Flexible
+- ✅ Configuration LLM (provider, model, temperature, max_tokens)
+- ✅ Sauvegarde des configs en base Supabase
+- ✅ Interface de gestion des experts custom
+- ✅ Interface de gestion des entreprises
+
+---
+
+## 🤖 Système Multi-Agents
+
+### Architecture d'Orchestration
+
+Le cœur de l'application est un **système d'orchestration multi-agents** qui simule des discussions d'experts pour produire des analyses de haute qualité.
+
+#### Pourquoi Plusieurs Contributions avec 1 Seul Expert ?
+
+Même avec **un seul expert**, l'orchestrateur exécute un **processus multi-phases** :
+
+```
+┌─────────────────────────────────────────────────────┐
+│  PHASE 1: ANALYSE INITIALE                          │
+│  [Expert] → API Call #1 → Type: "analysis"         │
+└─────────────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│  PHASE 2: DÉBAT ROUND 1                             │
+│  [Expert] → API Call #2 → Type: "debate"           │
+│  (L'expert réfléchit et affine sa position)         │
+└─────────────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│  PHASE 2: DÉBAT ROUND 2                             │
+│  [Expert] → API Call #3 → Type: "consensus"        │
+│  (L'expert construit un consensus)                  │
+└─────────────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│  PHASE 3: SYNTHÈSE DE L'ACTION                      │
+│  [Expert] → API Call #4 → Type: "summary"          │
+│  (Résumé structuré de l'analyse)                    │
+└─────────────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│  PHASE 4: SYNTHÈSE FINALE                           │
+│  [Expert] → API Call #5 → Type: "summary"          │
+│  (Rapport exécutif final)                           │
+└─────────────────────────────────────────────────────┘
+
+RÉSULTAT: 5 contributions pour 1 expert sur 1 action
+```
+
+**Total avec 1 expert + 1 action (PESTEL)** : **5 contributions**
+
+### Processus Multi-Phases
+
+L'orchestrateur (`/lib/agents/orchestrator.ts`) exécute le workflow suivant :
+
+#### Phase 1 : Analyse Initiale
+Chaque expert analyse individuellement la demande selon son domaine d'expertise.
+
+```typescript
+for (const agent of relevantAgents) {
+  const prompt = `En tant qu'expert ${expert.role}, analyse la demande suivante :
+
+  "${userInput}"
+
+  Focus sur ${action.name}. Sois spécifique et actionnable.`;
+
+  const response = await agent.generate(prompt);
+  // Type de contribution : "analysis"
+}
+```
+
+**Input à GPT-4** :
+- System prompt (personnalité de l'expert)
+- User input (demande de l'utilisateur)
+- Contexte de l'entreprise (si sélectionnée)
+- Template de l'action (ex: structure PESTEL)
+
+**Output** : Analyse initiale de l'expert
+
+#### Phase 2 : Débat et Raffinement (2 rounds)
+Les experts réagissent aux contributions précédentes pour affiner, compléter ou challenger.
+
+```typescript
+for (let round = 0; round < 2; round++) {
+  for (const agent of relevantAgents) {
+    const recentContributions = this.contributions.slice(-relevantAgents.length * 2);
+    const reaction = await agent.react(recentContributions);
+
+    const contributionType = round === 0 ? "debate" : "consensus";
+    // Round 1 → Type: "debate"
+    // Round 2 → Type: "consensus"
+  }
+}
+```
+
+**Input à GPT-4** :
+- System prompt de l'expert
+- Historique de conversation précédent
+- Contributions des autres experts (ou ses propres contributions si seul)
+- Prompt de réaction
+
+**Output** :
+- Round 1 : Points de désaccord, compléments, questions
+- Round 2 : Convergence vers un consensus
+
+#### Phase 3 : Synthèse de l'Action
+Un expert "stratégiste" crée un résumé structuré de l'analyse.
+
+```typescript
+const synthesisPrompt = `Crée un résumé structuré de l'analyse ${action.name}.
+
+Contributions des experts :
+${allContributions}
+
+Structure ton résumé de manière claire avec des sections et des recommandations actionnables.`;
+
+const synthesis = await strategist.generate(synthesisPrompt);
+// Type de contribution : "summary"
+```
+
+**Output** : Synthèse structurée selon le template de l'action
+
+#### Phase 4 : Synthèse Finale Cross-Actions
+Si plusieurs actions ont été sélectionnées, une synthèse finale combine tous les insights.
+
+```typescript
+const finalSynthesisPrompt = `Tu es le super consultant qui crée le rapport final exécutif.
+
+Synthèses par action :
+${allSummaries}
+
+Crée un rapport exécutif cohérent avec :
+1. Vue d'ensemble
+2. Insights clés de chaque analyse
+3. Recommandations stratégiques prioritaires
+4. Plan d'action concret`;
+
+const finalOutput = await strategist.generate(finalSynthesisPrompt);
+```
+
+**Output** : Rapport exécutif final intégré
+
+### Flux des Appels LLM
+
+Chaque contribution représente **1 appel à l'API OpenAI** avec cette structure :
+
+```typescript
+{
+  model: "gpt-4-turbo-preview",  // Depuis llm_configs
+  temperature: 0.7,               // Depuis llm_configs
+  max_tokens: 4000,              // Depuis llm_configs
+  messages: [
+    {
+      role: "system",
+      content: expert.systemPrompt  // Personnalité de l'expert
+    },
+    {
+      role: "system",
+      content: "Voici les contributions précédentes:\n\n[contexte]"
+    },
+    ...conversationHistory,  // Historique des échanges
+    {
+      role: "user",
+      content: prompt  // Prompt spécifique à la phase
+    }
+  ]
+}
+```
+
+### Exemples de Scénarios
+
+#### Scénario 1 : 1 Expert + 1 Action (PESTEL)
+- Phase 1 : 1 contribution (analyse)
+- Phase 2 : 2 contributions (débat x2)
+- Phase 3 : 1 contribution (synthèse)
+- Phase 4 : 1 contribution (synthèse finale)
+- **Total : 5 contributions**
+
+#### Scénario 2 : 3 Experts + 1 Action (SWOT)
+- Phase 1 : 3 contributions (1 par expert)
+- Phase 2 Round 1 : 3 contributions (débat)
+- Phase 2 Round 2 : 3 contributions (consensus)
+- Phase 3 : 1 contribution (synthèse)
+- Phase 4 : 1 contribution (synthèse finale)
+- **Total : 11 contributions**
+
+#### Scénario 3 : 1 Expert + 2 Actions (SWOT + PESTEL)
+- Action 1 (SWOT) : 4 contributions
+- Action 2 (PESTEL) : 4 contributions
+- Phase 4 : 1 contribution (synthèse finale cross-actions)
+- **Total : 9 contributions**
+
+### Interaction Entre Experts
+
+#### Avec 1 Seul Expert
+L'expert **réagit à ses propres contributions** pour :
+- Affiner sa pensée
+- Ajouter des détails oubliés
+- Corriger ou nuancer son analyse
+- Construire une réflexion itérative
+
+#### Avec Plusieurs Experts
+Les experts **débattent entre eux** :
+- Chaque expert voit les analyses des autres
+- Perspectives complémentaires émergent
+- Désaccords constructifs sont exprimés
+- Consensus se construit par itérations
+
+---
+
+## 👥 Les 25 Experts IA
+
+### 24 Experts Prédéfinis
+
+L'application inclut 24 experts avec des personnalités de personnages de fiction :
+
+| Expert | Personnage | Expertise | Tone |
+|--------|-----------|-----------|------|
+| **Super Consultant Onepoint** | Aragorn | Consulting stratégique généraliste, synthèse, facilitation | Strategic |
+| **Expert RH** | Hermione Granger | Gestion des talents, culture d'entreprise, organisation | Pragmatic |
+| **Expert Communication** | Gandalf | Communication corporate, relations publiques, messaging | Creative |
+| **Expert Produit** | Light Yagami | Product management, stratégie produit, roadmap | Strategic |
+| **Expert UX** | Edward Elric | UX/UI design, recherche utilisateur, design thinking | Creative |
+| **Expert Marketing** | Tyrion Lannister | Marketing stratégique, acquisition, growth | Strategic |
+| **Expert Financier / CFO** | Lucius Malfoy | Finance d'entreprise, modélisation financière, valorisation | Analytical |
+| **Expert Stratégie d'Entreprise** | Albus Dumbledore | Stratégie corporate, M&A, transformation | Strategic |
+| **Expert Innovation & R&D** | Tony Stark | Innovation, R&D, nouvelles technologies | Creative |
+| **Expert Business Model** | Lelouch vi Britannia | Modèles économiques, monétisation, pricing | Analytical |
+| **Expert Transformation Digitale** | Neo | Digital transformation, change management, tech adoption | Strategic |
+| **Expert Supply Chain / Logistique** | Samwise Gamgee | Supply chain, logistique, opérations | Pragmatic |
+| **Expert IT / Systèmes d'Information** | L Lawliet | Architecture IT, infrastructure, sécurité | Analytical |
+| **Expert Data & Analytics** | Shikamaru Nara | Data science, analytics, business intelligence | Analytical |
+| **Expert Qualité / Process** | Levi Ackerman | Qualité, amélioration continue, processus | Pragmatic |
+| **Expert Legal & Compliance** | Harvey Specter | Droit des affaires, conformité, réglementation | Formal |
+| **Expert Customer Success** | Naruto Uzumaki | Satisfaction client, retention, support | Pragmatic |
+| **Expert Sales / Commercial** | Jack Sparrow | Vente, développement commercial, négociation | Strategic |
+| **Expert Pricing & Monétisation** | Cersei Lannister | Stratégie de prix, monétisation, revenue optimization | Analytical |
+| **Expert Competitive Intelligence** | Arya Stark | Veille concurrentielle, analyse de marché, benchmarking | Analytical |
+| **Expert Market Research** | Sherlock Holmes | Études de marché, segmentation, tendances | Analytical |
+| **Expert Sustainability / RSE** | Pocahontas | Développement durable, RSE, impact environnemental | Formal |
+| **Expert Change Management** | Morpheus | Conduite du changement, transformation organisationnelle | Pragmatic |
+| **Expert Risk Management** | Nick Fury | Gestion des risques, compliance, audit | Formal |
+| **Expert Cybersécurité** | Batman | Sécurité informatique, protection des données, cyber-risques | Analytical |
+
+### Experts Personnalisés
+
+Vous pouvez créer vos propres experts via l'interface `/experts` :
+- ✅ Nom et rôle personnalisés
+- ✅ Expertise détaillée
+- ✅ Ton de communication (formal, creative, analytical, strategic, pragmatic)
+- ✅ System prompt complet (personnalité de l'expert)
+- ✅ Couleur et avatar optionnels
+- ✅ Sauvegarde en base Supabase
+- ✅ Utilisation dans les analyses au même titre que les experts prédéfinis
+
+---
+
+## 📊 Les 14 Analyses Stratégiques
+
+| Action | Description | Experts Recommandés | Durée Estimée |
+|--------|-------------|---------------------|---------------|
+| **SWOT** | Analyse Forces, Faiblesses, Opportunités, Menaces | Stratégie, Competitive Intelligence, Market Research, Finance | 15 min |
+| **PESTEL** | Analyse Politique, Économique, Socioculturelle, Technologique, Environnementale, Légale | Stratégie, Market Research, Legal, Sustainability, Innovation | 20 min |
+| **5 Forces de Porter** | Analyse de l'intensité concurrentielle du secteur | Stratégie, Competitive Intelligence, Market Research | 18 min |
+| **Matrice BCG** | Positionnement du portefeuille produits/activités | Stratégie, Produit, Finance, Marketing | 15 min |
+| **Business Model Canvas** | Modélisation du modèle économique complet | Business Model, Stratégie, Finance, Marketing | 25 min |
+| **Value Proposition Canvas** | Alignement produit/marché et proposition de valeur | Produit, UX, Marketing, Customer Success | 20 min |
+| **Analyse Concurrentielle** | Étude approfondie des concurrents | Competitive Intelligence, Market Research, Produit, Marketing | 30 min |
+| **Market Sizing (TAM/SAM/SOM)** | Estimation de la taille du marché addressable | Market Research, Finance, Stratégie | 25 min |
+| **Feature Prioritization (RICE/MoSCoW)** | Priorisation des fonctionnalités produit | Produit, UX, Data, Customer Success | 20 min |
+| **User Journey Mapping** | Cartographie du parcours utilisateur | UX, Customer Success, Produit, Marketing | 25 min |
+| **Product Roadmap** | Feuille de route produit stratégique | Produit, Stratégie, Innovation, Data | 22 min |
+| **UX Audit** | Audit de l'expérience utilisateur | UX, Customer Success, Data | 30 min |
+| **Risk Assessment** | Évaluation et gestion des risques | Risk Management, Legal, Finance, Cybersécurité | 28 min |
+| **Rapport Complet** | Analyse exhaustive combinant plusieurs frameworks | Stratégie, Finance, Market Research, Competitive Intelligence, Produit, UX, Risk Management, Innovation | 60 min |
+
+Chaque analyse dispose d'un **template de sortie structuré** qui guide les experts dans leur réponse.
+
+---
 
 ## 🛠️ Stack Technique
 
+### Frontend
 - **Framework** : Next.js 15 (App Router)
-- **Language** : TypeScript
-- **UI** : shadcn/ui + Tailwind CSS
+- **Language** : TypeScript 5
+- **UI Library** : shadcn/ui (Radix UI primitives)
+- **Styling** : Tailwind CSS 3.4
+- **Icons** : Lucide React
+- **State Management** : Zustand 5
+- **Date Utilities** : date-fns 4
+
+### Backend
+- **Runtime** : Node.js (Next.js API Routes)
 - **Database** : Supabase (PostgreSQL)
-- **AI** : OpenAI GPT-4
-- **PDF** : jsPDF + jspdf-autotable
-- **Déploiement** : Vercel
+- **AI** : OpenAI GPT-4 (API v6.8)
+- **PDF Generation** : jsPDF + jspdf-autotable
+
+### Déploiement
+- **Hosting** : Vercel
+- **Database** : Supabase Cloud
+- **Streaming** : Server-Sent Events (SSE)
+
+---
+
+## 🏗️ Architecture du Projet
+
+```
+onepoint-ai-consulting/
+├── app/
+│   ├── layout.tsx                    # Layout racine
+│   ├── page.tsx                      # Page d'accueil (nouvelle analyse)
+│   ├── actions/                      # Pages des 14 analyses
+│   │   ├── swot/page.tsx
+│   │   ├── pestel/page.tsx
+│   │   ├── porter/page.tsx
+│   │   ├── bcg/page.tsx
+│   │   ├── business-model-canvas/page.tsx
+│   │   ├── value-proposition-canvas/page.tsx
+│   │   ├── competitive-analysis/page.tsx
+│   │   ├── market-sizing/page.tsx
+│   │   ├── feature-prioritization/page.tsx
+│   │   ├── user-journey-mapping/page.tsx
+│   │   ├── product-roadmap/page.tsx
+│   │   ├── ux-audit/page.tsx
+│   │   └── risk-assessment/page.tsx
+│   ├── company/page.tsx              # Gestion des entreprises
+│   ├── experts/page.tsx              # Gestion des experts custom
+│   ├── config/page.tsx               # Configuration LLM
+│   ├── history/page.tsx              # Historique des analyses
+│   └── api/
+│       ├── analyze/route.ts          # Endpoint analyse (SSE streaming)
+│       └── generate-pdf/route.ts     # Endpoint génération PDF
+│
+├── components/
+│   ├── ui/                           # shadcn/ui components
+│   │   ├── button.tsx
+│   │   ├── card.tsx
+│   │   ├── input.tsx
+│   │   ├── textarea.tsx
+│   │   ├── select.tsx
+│   │   ├── dialog.tsx
+│   │   ├── badge.tsx
+│   │   ├── scroll-area.tsx
+│   │   └── ...
+│   ├── layout/
+│   │   └── sidebar.tsx               # Navigation latérale
+│   ├── analysis/
+│   │   ├── action-selector.tsx       # Sélecteur d'actions
+│   │   ├── expert-selector.tsx       # Sélecteur d'experts (avec custom)
+│   │   ├── company-selector.tsx      # Sélecteur d'entreprise
+│   │   ├── analysis-input.tsx        # Zone de saisie contexte
+│   │   └── timeline.tsx              # Timeline des contributions
+│   └── actions/
+│       ├── action-page-template.tsx  # Template réutilisable pour pages actions
+│       └── analysis-results.tsx      # Affichage résultats avec timeline + rapport
+│
+├── lib/
+│   ├── agents/
+│   │   ├── orchestrator.ts           # 🎯 Orchestrateur multi-agents (CŒUR)
+│   │   └── agent-base.ts             # Classe Agent individuel
+│   ├── actions/
+│   │   └── action-definitions.ts     # Définitions des 14 analyses
+│   ├── experts/
+│   │   └── predefined-experts.ts     # 24 experts prédéfinis
+│   ├── openai/
+│   │   └── client.ts                 # Client OpenAI configuré
+│   ├── pdf/
+│   │   └── generator.ts              # Générateur de PDF
+│   └── supabase/
+│       ├── client.ts                 # Client Supabase (lazy initialization)
+│       └── schema.sql                # Schéma de base de données
+│
+├── types/
+│   └── index.ts                      # Types TypeScript centralisés
+│
+├── .env.local                        # Variables d'environnement (local)
+├── package.json                      # Dépendances NPM
+├── tsconfig.json                     # Configuration TypeScript
+├── tailwind.config.ts                # Configuration Tailwind
+└── next.config.js                    # Configuration Next.js
+```
+
+### Fichiers Clés
+
+#### `/lib/agents/orchestrator.ts`
+Cœur du système multi-agents. Gère :
+- Initialisation des agents selon experts sélectionnés
+- Exécution des 4 phases (analyse initiale, débats, synthèse action, synthèse finale)
+- Streaming des contributions en temps réel
+- Gestion du contexte entre phases
+
+#### `/lib/agents/agent-base.ts`
+Classe représentant un expert individuel. Méthodes :
+- `generate(prompt, context)` : Génère une réponse via OpenAI
+- `react(previousContributions)` : Réagit aux contributions précédentes
+- Historique de conversation maintenu pour cohérence
+
+#### `/components/actions/action-page-template.tsx`
+Template réutilisable pour les 14 pages d'action. Gère :
+- Formulaire de saisie (contexte, experts, entreprise)
+- Lancement de l'analyse via `/api/analyze`
+- Affichage des résultats avec `AnalysisResults`
+- Génération et téléchargement du PDF
+
+#### `/components/actions/analysis-results.tsx`
+Affichage complet des résultats :
+- Header de statut (en cours / terminé / erreur)
+- Timeline des contributions avec expand/collapse
+- Badges de type (analysis, debate, consensus, summary)
+- Section rapport final
+
+#### `/app/api/analyze/route.ts`
+API route qui :
+- Charge les experts custom depuis Supabase
+- Initialise l'orchestrateur avec config LLM
+- Stream les contributions via SSE
+- Retourne le résultat final
+
+---
 
 ## 📦 Installation
 
+### Prérequis
+- Node.js 20+
+- NPM ou Yarn
+- Un compte Supabase (gratuit)
+- Une clé API OpenAI
+
+### Étapes
+
 1. **Cloner le repository**
-\`\`\`bash
+```bash
 git clone <repo-url>
 cd Onepoint
-\`\`\`
+```
 
 2. **Installer les dépendances**
-\`\`\`bash
+```bash
 npm install
-\`\`\`
+```
 
 3. **Configurer les variables d'environnement**
-Créez un fichier \`.env.local\` à la racine :
 
-\`\`\`env
+Créez un fichier `.env.local` à la racine :
+
+```env
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 # OpenAI
-OPENAI_API_KEY=your-openai-api-key
+OPENAI_API_KEY=sk-your-openai-api-key
 
-# App
+# App (optionnel)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-\`\`\`
+```
 
 4. **Configurer la base de données Supabase**
 
-Connectez-vous à votre projet Supabase et exécutez le script SQL situé dans \`lib/supabase/schema.sql\`
+- Créez un projet sur [supabase.com](https://supabase.com)
+- Allez dans l'éditeur SQL
+- Copiez-collez le contenu de `/lib/supabase/schema.sql`
+- Exécutez le script
 
 5. **Lancer le serveur de développement**
-\`\`\`bash
+```bash
 npm run dev
-\`\`\`
+```
 
 L'application sera accessible sur [http://localhost:3000](http://localhost:3000)
 
-## 🎨 Design System
+---
 
-Le design utilise une palette de couleurs épurée :
-- **Noir & Blanc** : Couleurs principales
-- **Bleu #009DDF** : Couleur accent (primary)
-- **Design** : Clean et minimaliste
+## ⚙️ Configuration
 
-## 📝 Utilisation
+### Configuration LLM
 
-1. **Nouvelle Analyse**
-   - Décrivez votre contexte et objectif
-   - Sélectionnez une ou plusieurs actions d'analyse
-   - Choisissez les experts pertinents
-   - (Optionnel) Activez l'interaction pour répondre aux questions des agents
-   - Lancez l'analyse
+Accédez à `/config` pour configurer :
+- **Provider** : openai, anthropic (à venir), custom
+- **Model** : gpt-4-turbo-preview, gpt-4, gpt-3.5-turbo, etc.
+- **Temperature** : 0-1 (0.7 recommandé pour équilibre créativité/cohérence)
+- **Max Tokens** : 1000-8000 (4000 recommandé)
 
-2. **Suivi en Temps Réel**
-   - Visualisez la timeline des contributions des agents
-   - Les agents débattent et convergent vers un consensus
-   - Cliquez sur une contribution pour voir les détails
+Les configurations sont **sauvegardées en base Supabase** et appliquées à toutes les analyses.
 
-3. **Résultats**
-   - Consultez la synthèse exécutive finale
-   - Téléchargez le rapport PDF
-   - Retrouvez l'analyse dans l'historique
+### Gestion des Entreprises
 
-4. **Gestion des Experts**
-   - Consultez la liste des 24 experts prédéfinis
-   - Créez vos propres experts personnalisés
-   - Modifiez ou supprimez vos experts
+Accédez à `/company` pour :
+- Créer des profils d'entreprises complets
+- Ajouter contexte métier (mission, vision, valeurs)
+- Définir concurrents et USPs
+- Créer un glossaire de termes spécifiques
+- Modifier ou supprimer des entreprises
 
-5. **Configuration**
-   - Ajustez les paramètres du modèle LLM
-   - Configurez la température, max tokens, etc.
+Les entreprises peuvent être **sélectionnées lors des analyses** pour contextualiser les réponses des experts.
 
-## 🚀 Déploiement sur Vercel
+### Gestion des Experts Personnalisés
+
+Accédez à `/experts` pour :
+- Voir les 24 experts prédéfinis
+- Créer vos propres experts avec :
+  - Nom et rôle
+  - Domaine d'expertise
+  - Ton de communication
+  - System prompt complet (personnalité, instructions)
+  - Couleur et avatar
+- Modifier vos experts custom
+- Supprimer vos experts custom
+
+Les experts custom apparaissent dans le sélecteur d'experts de toutes les pages d'action.
+
+---
+
+## 🎯 Utilisation
+
+### Lancer une Analyse
+
+1. **Depuis la page d'accueil** ou **une page d'action spécifique** (`/actions/swot`, `/actions/pestel`, etc.)
+
+2. **Remplir le formulaire** :
+   - **Contexte** : Décrivez votre demande, projet ou situation à analyser
+   - **Entreprise** : (Optionnel) Sélectionnez une entreprise pour contextualiser
+   - **Experts** : Sélectionnez un ou plusieurs experts pertinents
+     - Les experts recommandés sont pré-sélectionnés
+     - Vous pouvez ajouter/retirer des experts selon vos besoins
+
+3. **Lancer l'analyse**
+
+4. **Suivre en temps réel** :
+   - Les contributions apparaissent au fur et à mesure
+   - Header indique le statut (en cours / terminé)
+   - Timeline des discussions entre experts
+   - Cliquez sur une contribution pour l'agrandir
+
+5. **Consulter le rapport final** :
+   - Section "Rapport final" en bas de page
+   - Synthèse structurée avec recommandations
+   - Bouton de téléchargement PDF (à venir)
+
+### Exemples de Prompts
+
+#### SWOT pour une Startup SaaS
+```
+Analyse SWOT pour une startup SaaS B2B de gestion de projet collaborative.
+Secteur : Productivité / Collaboration
+Cible : PME 50-500 employés
+Concurrent principal : Asana, Monday.com
+Différenciation : IA pour priorisation automatique des tâches
+```
+
+#### PESTEL pour Expansion Internationale
+```
+Analyse PESTEL pour l'expansion de notre marketplace e-commerce en Allemagne.
+Contexte : Actuellement présent en France (500k users)
+Secteur : E-commerce vêtements seconde main
+Objectif : Lancement Q3 2025
+```
+
+#### Business Model Canvas pour Pivot
+```
+Business Model Canvas pour pivoter notre modèle freemium vers un modèle enterprise B2B.
+Produit actuel : 100k utilisateurs gratuits, 2k payants (9€/mois)
+Nouveau modèle envisagé : Enterprise licenses (500€+/mois) avec onboarding dédié
+```
+
+---
+
+## 🗄️ Base de Données
+
+### Schéma Supabase (PostgreSQL)
+
+#### Table `experts`
+Stocke les experts personnalisés créés par les utilisateurs.
+
+```sql
+CREATE TABLE experts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  expertise TEXT NOT NULL,
+  tone TEXT NOT NULL CHECK (tone IN ('formal', 'creative', 'analytical', 'strategic', 'pragmatic')),
+  system_prompt TEXT NOT NULL,
+  is_custom BOOLEAN DEFAULT false,
+  avatar TEXT,
+  color TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### Table `company`
+Stocke les profils d'entreprises avec contexte enrichi.
+
+```sql
+CREATE TABLE company (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  industry TEXT NOT NULL,
+  description TEXT NOT NULL,
+  size TEXT,
+  location TEXT,
+  website TEXT,
+  founded_year INTEGER,
+  mission TEXT,
+  vision TEXT,
+  values JSONB DEFAULT '[]',
+  target_market TEXT,
+  competitors JSONB DEFAULT '[]',
+  unique_selling_points JSONB DEFAULT '[]',
+  glossary JSONB NOT NULL DEFAULT '[]',
+  custom_context TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### Table `llm_configs`
+Stocke la configuration du modèle LLM.
+
+```sql
+CREATE TABLE llm_configs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider TEXT NOT NULL CHECK (provider IN ('openai', 'anthropic', 'custom')),
+  model TEXT NOT NULL,
+  temperature DECIMAL(3, 2) NOT NULL DEFAULT 0.7,
+  max_tokens INTEGER NOT NULL DEFAULT 4000,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+#### Table `analyses` (à venir)
+Stockera l'historique des analyses pour consultation ultérieure.
+
+```sql
+CREATE TABLE analyses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_input TEXT NOT NULL,
+  selected_actions JSONB NOT NULL,
+  selected_experts JSONB NOT NULL,
+  user_involved BOOLEAN DEFAULT false,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'waiting_user', 'completed', 'failed')),
+  timeline JSONB NOT NULL DEFAULT '[]',
+  result TEXT,
+  pdf_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Indexes
+
+```sql
+CREATE INDEX idx_analyses_created_at ON analyses(created_at DESC);
+CREATE INDEX idx_experts_is_custom ON experts(is_custom);
+```
+
+---
+
+## 💰 Coûts et Performance
+
+### Estimation des Coûts OpenAI
+
+Les coûts varient selon le nombre d'experts et d'actions sélectionnés.
+
+#### Exemple : 1 Expert + 1 Action (PESTEL)
+
+| Phase | Appels API | Input Tokens | Output Tokens |
+|-------|------------|--------------|---------------|
+| Analyse initiale | 1 | ~500 | ~800 |
+| Débat Round 1 | 1 | ~1,500 | ~500 |
+| Débat Round 2 | 1 | ~2,500 | ~500 |
+| Synthèse action | 1 | ~3,500 | ~1,000 |
+| Synthèse finale | 1 | ~4,500 | ~1,200 |
+| **TOTAL** | **5** | **~12,500** | **~4,000** |
+
+**Coût GPT-4-turbo** (tarifs approximatifs 2024):
+- Input: 12,500 tokens × $0.01/1K = **$0.125**
+- Output: 4,000 tokens × $0.03/1K = **$0.120**
+- **Total : ~$0.25 par analyse**
+
+#### Exemple : 3 Experts + 1 Action
+- **Total : ~$0.75 par analyse**
+
+#### Exemple : 1 Expert + Rapport Complet (14 actions)
+- **Total : ~$3.50 par analyse**
+
+### Optimisations Possibles
+
+Si vous souhaitez réduire les coûts ou le nombre de contributions :
+
+1. **Réduire les rounds de débat** dans `/lib/agents/orchestrator.ts:92` :
+```typescript
+// Passer de 2 à 1 round
+for (let round = 0; round < 1; round++) {
+```
+
+2. **Utiliser GPT-3.5-turbo** au lieu de GPT-4 (10x moins cher, qualité moindre)
+
+3. **Créer un mode "Fast Analysis"** : Analyse initiale + synthèse uniquement (sauter les débats)
+
+### Performance
+
+- **Temps d'exécution** : 15-60 secondes selon nombre d'experts et d'actions
+- **Streaming SSE** : Résultats affichés en temps réel au fur et à mesure
+- **Concurrent requests** : OpenAI API gère ~3500 requests/min
+
+---
+
+## 🚀 Déploiement
+
+### Déploiement sur Vercel (Recommandé)
 
 1. **Push vers GitHub**
-\`\`\`bash
+```bash
 git add .
-git commit -m "Initial commit"
+git commit -m "Initial deployment"
 git push origin main
-\`\`\`
+```
 
 2. **Connecter à Vercel**
-   - Allez sur [vercel.com](https://vercel.com)
-   - Importez votre repository
-   - Configurez les variables d'environnement
-   - Déployez
+- Allez sur [vercel.com](https://vercel.com)
+- Cliquez "Import Project"
+- Sélectionnez votre repository GitHub
+- Vercel détecte automatiquement Next.js
 
-3. **Configuration Supabase**
-   - Créez un projet Supabase
-   - Exécutez le schéma SQL
-   - Ajoutez les credentials dans Vercel
+3. **Configurer les variables d'environnement**
 
-## 🏗️ Architecture
+Dans Vercel → Settings → Environment Variables, ajoutez :
 
-\`\`\`
-onepoint-ai-consulting/
-├── app/
-│   ├── (dashboard)/          # Pages protégées
-│   │   ├── page.tsx          # Nouvelle analyse
-│   │   ├── experts/          # Gestion experts
-│   │   ├── config/           # Config LLM
-│   │   └── history/          # Historique
-│   ├── api/
-│   │   ├── analyze/          # Endpoint analyse
-│   │   └── generate-pdf/    # Endpoint PDF
-│   └── layout.tsx
-├── components/
-│   ├── ui/                   # shadcn components
-│   ├── analysis/             # Composants d'analyse
-│   └── layout/               # Layout components
-├── lib/
-│   ├── agents/               # Système multi-agents
-│   ├── actions/              # Définitions actions
-│   ├── experts/              # Experts prédéfinis
-│   ├── openai/               # Client OpenAI
-│   ├── pdf/                  # Générateur PDF
-│   └── supabase/             # Client Supabase
-└── types/                    # TypeScript types
-\`\`\`
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+OPENAI_API_KEY=sk-your-openai-api-key
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+```
 
-## 🔑 Variables d'Environnement
+4. **Déployer**
+- Cliquez "Deploy"
+- Vercel build et déploie automatiquement
+- Accédez à votre app via l'URL fournie
 
-| Variable | Description | Requis |
-|----------|-------------|--------|
-| \`NEXT_PUBLIC_SUPABASE_URL\` | URL du projet Supabase | Oui |
-| \`NEXT_PUBLIC_SUPABASE_ANON_KEY\` | Clé anonyme Supabase | Oui |
-| \`OPENAI_API_KEY\` | Clé API OpenAI | Oui |
-| \`NEXT_PUBLIC_APP_URL\` | URL de l'application | Non |
+### Déploiement sur d'autres plateformes
 
-## 📊 Roadmap Future
+L'application est compatible avec toute plateforme supportant Next.js :
+- **Railway** : [railway.app](https://railway.app)
+- **Render** : [render.com](https://render.com)
+- **AWS Amplify** : [aws.amazon.com/amplify](https://aws.amazon.com/amplify/)
+- **Netlify** : [netlify.com](https://www.netlify.com)
 
-- [ ] Authentification utilisateurs
-- [ ] Partage d'analyses
-- [ ] Templates d'analyse prédéfinis
-- [ ] Export Word/PowerPoint
-- [ ] Support multi-langues
-- [ ] Intégration Anthropic Claude
-- [ ] Mode collaboratif temps réel
-- [ ] API publique
-- [ ] Webhooks
+---
+
+## 🎨 Design System
+
+### Palette de Couleurs
+
+- **Noir & Blanc** : Couleurs principales (fond, texte)
+- **Bleu #009DDF** : Couleur accent (primary) - Branding Onepoint
+- **Tons de gris** : Composants UI (cartes, bordures)
+
+### Typographie
+- **Font** : Inter (via Next.js Font)
+- **Tailles** : System Tailwind (text-sm, text-base, text-lg, etc.)
+
+### Composants UI
+Tous les composants proviennent de **shadcn/ui** :
+- Design system cohérent et moderne
+- Accessibilité intégrée (ARIA)
+- Personnalisable via Tailwind
+
+---
+
+## 📅 Roadmap
+
+### ✅ Fonctionnalités Implémentées
+
+- [x] 24 experts prédéfinis avec personnalités
+- [x] 14 analyses stratégiques complètes
+- [x] Système multi-agents avec débats itératifs
+- [x] Streaming temps réel (SSE)
+- [x] Gestion d'entreprises (CRUD Supabase)
+- [x] Gestion d'experts custom (CRUD Supabase)
+- [x] Configuration LLM flexible (Supabase)
+- [x] Génération PDF basique
+- [x] Interface moderne avec shadcn/ui
+- [x] Déploiement Vercel
+
+### 🚧 En Cours / À Venir
+
+- [ ] **Sauvegarde des analyses en base** (table `analyses`)
+- [ ] **Historique des analyses** avec recherche et filtres
+- [ ] **Amélioration PDF** : Mise en page professionnelle avec branding
+- [ ] **Export Word/PowerPoint**
+- [ ] **Mode "Fast Analysis"** (sans débats) pour réduire coûts
+- [ ] **Authentification utilisateurs** (Supabase Auth)
+- [ ] **Multi-tenancy** : Workspace par entreprise
+- [ ] **Partage d'analyses** : Liens publics, collaboration
+- [ ] **Templates d'analyse prédéfinis** : Prompts pré-remplis par secteur
+- [ ] **Support multi-langues** (français, anglais)
+- [ ] **Intégration Anthropic Claude** comme provider alternatif
+- [ ] **Mode collaboratif temps réel** : Plusieurs utilisateurs sur une analyse
+- [ ] **API publique** pour intégrations
+- [ ] **Webhooks** pour notifications
+- [ ] **Dashboard analytics** : Métriques d'utilisation, coûts
+- [ ] **Fine-tuning** : Modèles personnalisés par secteur
+
+### 💡 Idées Futures
+
+- [ ] **Mode vocal** : Transcription audio → Analyse
+- [ ] **Intégration Slack/Teams** : Lancer analyses depuis chat
+- [ ] **Connecteurs data** : Import CRM, Analytics, etc.
+- [ ] **Agents spécialisés par secteur** : HealthTech, FinTech, etc.
+- [ ] **Simulations Monte Carlo** pour projections financières
+- [ ] **Visualisations interactives** : Graphiques, matrices dynamiques
+- [ ] **Benchmarking automatique** via web scraping
+- [ ] **Veille concurrentielle automatique** : Alertes sur mouvements marché
+
+---
 
 ## 🤝 Contribution
 
-Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
+Les contributions sont les bienvenues ! Pour contribuer :
+
+1. **Fork** le repository
+2. **Créez une branche** : `git checkout -b feature/ma-fonctionnalite`
+3. **Committez** : `git commit -m "Ajout de ma fonctionnalité"`
+4. **Pushez** : `git push origin feature/ma-fonctionnalite`
+5. **Ouvrez une Pull Request**
+
+### Guidelines
+
+- Suivre les conventions TypeScript et Next.js
+- Utiliser les composants shadcn/ui existants
+- Ajouter des types TypeScript pour toute nouvelle entité
+- Tester localement avant de soumettre
+- Documenter les nouvelles fonctionnalités dans le README
+
+---
 
 ## 📄 License
 
-MIT
+MIT License
+
+Copyright (c) 2024 Onepoint
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
 
 ## 🙏 Remerciements
 
-Propulsé par :
-- OpenAI GPT-4
-- Next.js
-- shadcn/ui
-- Supabase
-- Vercel
+Propulsé par des technologies open-source exceptionnelles :
+
+- **OpenAI GPT-4** : Intelligence artificielle de pointe
+- **Next.js** : Framework React moderne et performant
+- **shadcn/ui** : Design system élégant et accessible
+- **Supabase** : Backend-as-a-Service avec PostgreSQL
+- **Vercel** : Plateforme de déploiement optimale pour Next.js
+- **Radix UI** : Primitives UI accessibles
+- **Tailwind CSS** : Framework CSS utility-first
+
+---
+
+## 📞 Support
+
+Pour toute question, bug ou suggestion :
+
+- **Issues GitHub** : [github.com/your-repo/issues](https://github.com/your-repo/issues)
+- **Email** : support@onepoint.com (exemple)
+- **Documentation** : Ce README + commentaires dans le code
+
+---
+
+## 🎯 À Propos de Onepoint
+
+[Onepoint](https://www.onepoint.com) est un cabinet de conseil en transformation digitale et innovation. Cet outil a été développé pour démocratiser l'accès à des analyses stratégiques de qualité consulting grâce à l'intelligence artificielle.
+
+**Made with ❤️ by Onepoint**
