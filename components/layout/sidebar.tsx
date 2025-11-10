@@ -43,15 +43,15 @@ const consultingActions: NavSection = {
   title: "Stratégie & Consulting",
   icon: TrendingUp,
   items: [
-    { name: "Analyse SWOT", href: "/?action=swot", icon: null },
-    { name: "Analyse PESTEL", href: "/?action=pestel", icon: null },
-    { name: "5 Forces de Porter", href: "/?action=porter", icon: null },
-    { name: "Matrice BCG", href: "/?action=bcg", icon: null },
-    { name: "Business Model Canvas", href: "/?action=business-model-canvas", icon: null },
-    { name: "Value Proposition Canvas", href: "/?action=value-proposition-canvas", icon: null },
-    { name: "Analyse Concurrentielle", href: "/?action=competitive-analysis", icon: null },
-    { name: "Market Sizing", href: "/?action=market-sizing", icon: null },
-    { name: "Risk Assessment", href: "/?action=risk-assessment", icon: null },
+    { name: "Analyse SWOT", href: "/actions/swot", icon: null },
+    { name: "Analyse PESTEL", href: "/actions/pestel", icon: null },
+    { name: "5 Forces de Porter", href: "/actions/porter", icon: null },
+    { name: "Matrice BCG", href: "/actions/bcg", icon: null },
+    { name: "Business Model Canvas", href: "/actions/business-model-canvas", icon: null },
+    { name: "Value Proposition Canvas", href: "/actions/value-proposition-canvas", icon: null },
+    { name: "Analyse Concurrentielle", href: "/actions/competitive-analysis", icon: null },
+    { name: "Market Sizing", href: "/actions/market-sizing", icon: null },
+    { name: "Risk Assessment", href: "/actions/risk-assessment", icon: null },
   ],
 };
 
@@ -59,10 +59,10 @@ const productManagementActions: NavSection = {
   title: "Product Management",
   icon: Package,
   items: [
-    { name: "Product Roadmap", href: "/?action=product-roadmap", icon: null },
-    { name: "Feature Prioritization", href: "/?action=feature-prioritization", icon: null },
-    { name: "User Journey Mapping", href: "/?action=user-journey-mapping", icon: null },
-    { name: "UX Audit", href: "/?action=ux-audit", icon: null },
+    { name: "Product Roadmap", href: "/actions/product-roadmap", icon: null },
+    { name: "Feature Prioritization", href: "/actions/feature-prioritization", icon: null },
+    { name: "User Journey Mapping", href: "/actions/user-journey-mapping", icon: null },
+    { name: "UX Audit", href: "/actions/ux-audit", icon: null },
   ],
 };
 
