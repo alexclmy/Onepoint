@@ -88,9 +88,10 @@ export function ActionPageTemplate({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          context,
-          expertIds: selectedExperts,
-          actions: [actionType],
+          userInput: context,
+          selectedExperts: selectedExperts,
+          selectedActions: [actionType],
+          userInvolved: false,
           companyContext: selectedCompany
             ? {
                 name: selectedCompany.name,
