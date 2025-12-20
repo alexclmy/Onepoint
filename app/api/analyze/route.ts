@@ -15,17 +15,57 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userInput, selectedActions, selectedExperts, userInvolved, useWebSearch } = body as {
+    const { userInput, selectedActions, selectedExperts, userInvolved, useWebSearch, companyContext } = body as {
       userInput: string;
       selectedActions: ActionType[];
       selectedExperts: string[];
       userInvolved: boolean;
       useWebSearch?: boolean;
+      companyContext?: any;
     };
 
     // Validate input
     if (!userInput || !selectedActions.length || !selectedExperts.length) {
       return new Response("Invalid input", { status: 400 });
+    }
+
+    // Enrich user input with company context if provided
+    let enrichedUserInput = userInput;
+    if (companyContext) {
+      const contextParts: string[] = [userInput];
+
+      if (companyContext.name) {
+        contextParts.push(`\n\n**Contexte Entreprise: ${companyContext.name}**`);
+      }
+      if (companyContext.industry) {
+        contextParts.push(`Industrie: ${companyContext.industry}`);
+      }
+      if (companyContext.description) {
+        contextParts.push(`Description: ${companyContext.description}`);
+      }
+      if (companyContext.targetMarket) {
+        contextParts.push(`Marché cible: ${companyContext.targetMarket}`);
+      }
+      if (companyContext.competitors && companyContext.competitors.length > 0) {
+        contextParts.push(`Concurrents: ${companyContext.competitors.join(", ")}`);
+      }
+      if (companyContext.uniqueSellingPoints && companyContext.uniqueSellingPoints.length > 0) {
+        contextParts.push(`Points de différenciation: ${companyContext.uniqueSellingPoints.join(", ")}`);
+      }
+      if (companyContext.values && companyContext.values.length > 0) {
+        contextParts.push(`Valeurs: ${companyContext.values.join(", ")}`);
+      }
+      if (companyContext.glossary && companyContext.glossary.length > 0) {
+        contextParts.push(`\nGlossaire:`);
+        companyContext.glossary.forEach((term: any) => {
+          contextParts.push(`- ${term.term}: ${term.definition}`);
+        });
+      }
+      if (companyContext.customContext) {
+        contextParts.push(`\nContexte additionnel: ${companyContext.customContext}`);
+      }
+
+      enrichedUserInput = contextParts.join("\n");
     }
 
     // Create analysis record in database
@@ -79,7 +119,7 @@ export async function POST(request: NextRequest) {
 
         try {
           const orchestrator = new AgentOrchestrator({
-            userInput,
+            userInput: enrichedUserInput, // Use enriched input with company context
             selectedActions,
             selectedExperts,
             userInvolved,
