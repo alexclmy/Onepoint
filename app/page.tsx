@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ActionSelector } from "@/components/analysis/action-selector";
 import { ExpertSelector } from "@/components/analysis/expert-selector";
 import { AnalysisInput } from "@/components/analysis/analysis-input";
@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionType, Contribution, UserQuestion, Company } from "@/types";
 import { Play, Download } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
 export default function HomePage() {
-  // TODO: Load companies from Supabase
-  const [companies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
 
   const [userInput, setUserInput] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -22,10 +22,40 @@ export default function HomePage() {
     "super-consultant-onepoint", // Pre-select Super Consultant
   ]);
   const [userInvolved, setUserInvolved] = useState(false);
+  const [useWebSearch, setUseWebSearch] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [timeline, setTimeline] = useState<Contribution[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<UserQuestion | null>(null);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+
+  useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  const loadCompanies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("company")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Erreur lors du chargement des entreprises:", error);
+        return;
+      }
+
+      // Transform database dates to Date objects
+      const transformedData = (data || []).map((company) => ({
+        ...company,
+        createdAt: new Date(company.created_at),
+        updatedAt: new Date(company.updated_at),
+      }));
+
+      setCompanies(transformedData);
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+  };
 
   const canStartAnalysis =
     userInput.trim().length > 0 &&
@@ -49,6 +79,7 @@ export default function HomePage() {
           selectedExperts,
           selectedCompanyId,
           userInvolved,
+          useWebSearch,
         }),
       });
 
@@ -132,18 +163,34 @@ export default function HomePage() {
             />
 
             {/* User Involvement */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="user-involved"
-                checked={userInvolved}
-                onCheckedChange={(checked) => setUserInvolved(!!checked)}
-              />
-              <label
-                htmlFor="user-involved"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                M'impliquer dans les échanges (répondre aux questions des agents)
-              </label>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="user-involved"
+                  checked={userInvolved}
+                  onCheckedChange={(checked) => setUserInvolved(!!checked)}
+                />
+                <label
+                  htmlFor="user-involved"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  M'impliquer dans les échanges (répondre aux questions des agents)
+                </label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="use-web-search"
+                  checked={useWebSearch}
+                  onCheckedChange={(checked) => setUseWebSearch(!!checked)}
+                />
+                <label
+                  htmlFor="use-web-search"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  🌐 Activer la recherche web (données récentes et actualités)
+                </label>
+              </div>
             </div>
 
             {/* Start Button */}

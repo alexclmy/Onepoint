@@ -7,6 +7,7 @@ import { ExpertSelector } from "@/components/analysis/expert-selector";
 import { AnalysisResults } from "@/components/actions/analysis-results";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
@@ -32,6 +33,7 @@ export function ActionPageTemplate({
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [selectedExperts, setSelectedExperts] = useState<string[]>(suggestedExperts);
   const [context, setContext] = useState("");
+  const [useWebSearch, setUseWebSearch] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
   const [analysisStarted, setAnalysisStarted] = useState(false);
@@ -93,6 +95,7 @@ export function ActionPageTemplate({
           selectedExperts: selectedExperts,
           selectedActions: [actionType],
           userInvolved: false,
+          useWebSearch: useWebSearch,
           companyContext: selectedCompany
             ? {
                 name: selectedCompany.name,
@@ -182,6 +185,20 @@ export function ActionPageTemplate({
               />
             </CardContent>
           </Card>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="use-web-search"
+              checked={useWebSearch}
+              onCheckedChange={(checked) => setUseWebSearch(!!checked)}
+            />
+            <label
+              htmlFor="use-web-search"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              🌐 Activer la recherche web (données récentes et actualités)
+            </label>
+          </div>
 
           <Button
             onClick={handleLaunch}
