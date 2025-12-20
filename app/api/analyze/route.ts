@@ -15,11 +15,12 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userInput, selectedActions, selectedExperts, userInvolved } = body as {
+    const { userInput, selectedActions, selectedExperts, userInvolved, useWebSearch } = body as {
       userInput: string;
       selectedActions: ActionType[];
       selectedExperts: string[];
       userInvolved: boolean;
+      useWebSearch?: boolean;
     };
 
     // Validate input
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
             selectedExperts,
             userInvolved,
             allExperts, // Pass all experts (predefined + custom)
+            useWebSearch: useWebSearch || false, // Enable web search if requested
             onContribution: (contribution: Contribution) => {
               sendEvent({
                 type: "contribution",
