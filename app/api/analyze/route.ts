@@ -10,17 +10,42 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userInput, selectedActions, selectedExperts, userInvolved } = body as {
+    const { userInput, selectedActions, selectedExperts, userInvolved, companyContext } = body as {
       userInput: string;
       selectedActions: ActionType[];
       selectedExperts: string[];
       userInvolved: boolean;
+      companyContext?: any;
     };
 
     // Validate input
     if (!userInput || !selectedActions.length || !selectedExperts.length) {
       return new Response("Invalid input", { status: 400 });
     }
+
+    // Create analysis record in database
+    const { data: analysisRecord, error: insertError } = await supabase
+      .from("analyses")
+      .insert([
+        {
+          user_input: userInput,
+          selected_actions: selectedActions,
+          selected_experts: selectedExperts,
+          user_involved: userInvolved,
+          status: "running",
+          timeline: [],
+          result: null,
+        },
+      ])
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Error creating analysis record:", insertError);
+      return new Response("Error creating analysis", { status: 500 });
+    }
+
+    const analysisId = analysisRecord.id;
 
     // Load custom experts from Supabase
     let allExperts = [...PREDEFINED_EXPERTS];
@@ -85,9 +110,25 @@ export async function POST(request: NextRequest) {
 
           const result = await orchestrator.runAnalysis();
 
+          // Save final result to database
+          const { error: updateError } = await supabase
+            .from("analyses")
+            .update({
+              status: "completed",
+              timeline: result.timeline,
+              result: result.finalOutput,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", analysisId);
+
+          if (updateError) {
+            console.error("Error updating analysis:", updateError);
+          }
+
           sendEvent({
             type: "complete",
             result: {
+              analysisId,
               timeline: result.timeline,
               finalOutput: result.finalOutput,
             },
@@ -96,6 +137,16 @@ export async function POST(request: NextRequest) {
           controller.close();
         } catch (error) {
           console.error("Orchestration error:", error);
+
+          // Update status to failed
+          await supabase
+            .from("analyses")
+            .update({
+              status: "failed",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", analysisId);
+
           sendEvent({
             type: "error",
             error: error instanceof Error ? error.message : "Unknown error",
