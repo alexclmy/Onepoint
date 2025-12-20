@@ -38,6 +38,16 @@ export interface Action {
 }
 
 // Contribution Types
+export interface ContributionDebugInfo {
+  systemPrompt: string;
+  userPrompt: string;
+  contextProvided: string[];
+  conversationHistory: AgentMessage[];
+  model: string;
+  temperature: number;
+  maxTokens: number;
+}
+
 export interface Contribution {
   id: string;
   agentId: string;
@@ -46,6 +56,7 @@ export interface Contribution {
   type: "analysis" | "debate" | "question" | "consensus" | "summary";
   content: string;
   replyTo?: string;
+  debug?: ContributionDebugInfo;
 }
 
 // Analysis Types

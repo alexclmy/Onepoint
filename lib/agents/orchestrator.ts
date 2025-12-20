@@ -1,5 +1,5 @@
 import { Agent } from "./agent-base";
-import { Expert, ActionType, Contribution, UserQuestion } from "@/types";
+import { Expert, ActionType, Contribution, UserQuestion, ContributionDebugInfo } from "@/types";
 import { ACTIONS } from "@/lib/actions/action-definitions";
 import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
 
@@ -60,7 +60,8 @@ export class AgentOrchestrator {
     agentName: string,
     type: Contribution["type"],
     content: string,
-    replyTo?: string
+    replyTo?: string,
+    debug?: ContributionDebugInfo
   ): void {
     const contribution: Contribution = {
       id: `contrib-${Date.now()}-${Math.random()}`,
@@ -70,6 +71,7 @@ export class AgentOrchestrator {
       type,
       content,
       replyTo,
+      debug,
     };
 
     this.contributions.push(contribution);
@@ -141,7 +143,9 @@ Fournis ton analyse initiale en te concentrant sur ton domaine d'expertise. Sois
           expert.id,
           expert.name,
           "analysis",
-          response
+          response.content,
+          undefined,
+          response.debug
         );
       }
 
@@ -168,7 +172,9 @@ Fournis ton analyse initiale en te concentrant sur ton domaine d'expertise. Sois
             expert.id,
             expert.name,
             contributionType,
-            reaction
+            reaction.content,
+            undefined,
+            reaction.debug
           );
         }
       }
@@ -186,10 +192,12 @@ Fournis ton analyse initiale en te concentrant sur ton domaine d'expertise. Sois
           expert.id,
           expert.name,
           "question",
-          question
+          question.content,
+          undefined,
+          question.debug
         );
 
-        const answer = await this.askUserQuestion(expert.id, expert.name, question);
+        const answer = await this.askUserQuestion(expert.id, expert.name, question.content);
 
         if (answer) {
           this.addContribution(
@@ -226,7 +234,9 @@ Intègre les insights de tous les experts de manière cohérente et actionnable.
         strategist.getExpert().id,
         strategist.getExpert().name,
         "summary",
-        synthesis
+        synthesis.content,
+        undefined,
+        synthesis.debug
       );
     }
 
@@ -273,14 +283,16 @@ Format attendu :
       strategist.getExpert().id,
       strategist.getExpert().name,
       "summary",
-      finalOutput
+      finalOutput.content,
+      undefined,
+      finalOutput.debug
     );
 
     console.log("✅ Analysis complete!");
 
     return {
       timeline: this.contributions,
-      finalOutput,
+      finalOutput: finalOutput.content,
       questionsAsked: this.questionsAsked,
     };
   }

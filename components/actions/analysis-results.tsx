@@ -5,13 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Loader2,
   CheckCircle2,
   AlertCircle,
   MessageSquare,
   FileText,
   Users,
-  Sparkles
+  Sparkles,
+  Info
 } from "lucide-react";
 import { Contribution } from "@/types";
 
@@ -22,6 +30,7 @@ interface AnalysisResultsProps {
 
 export function AnalysisResults({ isAnalyzing, events }: AnalysisResultsProps) {
   const [expandedContributions, setExpandedContributions] = useState<Set<number>>(new Set());
+  const [debugContribution, setDebugContribution] = useState<Contribution | null>(null);
 
   // Extract data from events
   const contributions: Contribution[] = [];
@@ -174,19 +183,33 @@ export function AnalysisResults({ isAnalyzing, events }: AnalysisResultsProps) {
                       {/* Content */}
                       <div
                         className="cursor-pointer rounded-lg border bg-card p-4 transition-all hover:shadow-md"
-                        onClick={() => toggleExpanded(index)}
                       >
                         <div className="space-y-2">
                           {/* Header */}
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{contribution.agentName}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {getContributionLabel(contribution.type)}
-                            </Badge>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2" onClick={() => toggleExpanded(index)}>
+                              <span className="font-semibold">{contribution.agentName}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {getContributionLabel(contribution.type)}
+                              </Badge>
+                            </div>
+                            {contribution.debug && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDebugContribution(contribution);
+                                }}
+                                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                                title="Voir les détails techniques"
+                              >
+                                <Info className="h-4 w-4" />
+                                Debug
+                              </button>
+                            )}
                           </div>
 
                           {/* Content */}
-                          <div className="text-sm">
+                          <div className="text-sm" onClick={() => toggleExpanded(index)}>
                             {isExpanded ? (
                               <div className="whitespace-pre-wrap">{contribution.content}</div>
                             ) : (
@@ -196,7 +219,10 @@ export function AnalysisResults({ isAnalyzing, events }: AnalysisResultsProps) {
 
                           {/* Expand indicator */}
                           {contribution.content.length > 200 && (
-                            <button className="text-xs text-primary hover:underline">
+                            <button
+                              className="text-xs text-primary hover:underline"
+                              onClick={() => toggleExpanded(index)}
+                            >
                               {isExpanded ? "Voir moins" : "Voir plus"}
                             </button>
                           )}
@@ -241,6 +267,116 @@ export function AnalysisResults({ isAnalyzing, events }: AnalysisResultsProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Debug Dialog */}
+      <Dialog open={!!debugContribution} onOpenChange={() => setDebugContribution(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              Détails techniques - {debugContribution?.agentName}
+            </DialogTitle>
+            <DialogDescription>
+              Informations de debug pour cette contribution
+            </DialogDescription>
+          </DialogHeader>
+
+          {debugContribution?.debug && (
+            <div className="space-y-4">
+              {/* Model Config */}
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Configuration du modèle
+                </h3>
+                <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted p-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Modèle:</span>
+                    <p className="font-mono">{debugContribution.debug.model}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Temperature:</span>
+                    <p className="font-mono">{debugContribution.debug.temperature}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Max Tokens:</span>
+                    <p className="font-mono">{debugContribution.debug.maxTokens}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Prompt */}
+              <div>
+                <h3 className="font-semibold mb-2">System Prompt</h3>
+                <div className="rounded-lg bg-muted p-3">
+                  <pre className="whitespace-pre-wrap text-xs font-mono">
+                    {debugContribution.debug.systemPrompt}
+                  </pre>
+                </div>
+              </div>
+
+              {/* User Prompt */}
+              <div>
+                <h3 className="font-semibold mb-2">User Prompt</h3>
+                <div className="rounded-lg bg-muted p-3">
+                  <pre className="whitespace-pre-wrap text-xs font-mono">
+                    {debugContribution.debug.userPrompt}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Context Provided */}
+              {debugContribution.debug.contextProvided.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">
+                    Contexte fourni ({debugContribution.debug.contextProvided.length} éléments)
+                  </h3>
+                  <div className="rounded-lg bg-muted p-3 space-y-2">
+                    {debugContribution.debug.contextProvided.map((ctx, idx) => (
+                      <div key={idx} className="border-l-2 border-primary pl-3">
+                        <pre className="whitespace-pre-wrap text-xs font-mono">{ctx}</pre>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Conversation History */}
+              {debugContribution.debug.conversationHistory.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">
+                    Historique de conversation ({debugContribution.debug.conversationHistory.length} messages)
+                  </h3>
+                  <ScrollArea className="h-[200px] rounded-lg bg-muted p-3">
+                    <div className="space-y-2">
+                      {debugContribution.debug.conversationHistory.map((msg, idx) => (
+                        <div key={idx} className={`p-2 rounded ${
+                          msg.role === 'user' ? 'bg-blue-100 dark:bg-blue-900' :
+                          msg.role === 'assistant' ? 'bg-green-100 dark:bg-green-900' :
+                          'bg-gray-100 dark:bg-gray-800'
+                        }`}>
+                          <div className="text-xs font-semibold mb-1 capitalize">{msg.role}</div>
+                          <pre className="whitespace-pre-wrap text-xs font-mono">{msg.content}</pre>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Response */}
+              <div>
+                <h3 className="font-semibold mb-2">Réponse du LLM</h3>
+                <div className="rounded-lg bg-muted p-3">
+                  <pre className="whitespace-pre-wrap text-xs font-mono">
+                    {debugContribution.content}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

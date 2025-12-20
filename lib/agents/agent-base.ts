@@ -1,5 +1,10 @@
-import { Expert, AgentMessage, Contribution } from "@/types";
+import { Expert, AgentMessage, Contribution, ContributionDebugInfo } from "@/types";
 import { openai, DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS } from "@/lib/openai/client";
+
+export interface GenerateResponse {
+  content: string;
+  debug: ContributionDebugInfo;
+}
 
 export class Agent {
   private expert: Expert;
@@ -25,7 +30,7 @@ export class Agent {
     return this.expert;
   }
 
-  async generate(prompt: string, context?: string[]): Promise<string> {
+  async generate(prompt: string, context?: string[]): Promise<GenerateResponse> {
     const messages: AgentMessage[] = [
       {
         role: "system",
@@ -66,14 +71,28 @@ export class Agent {
         { role: "assistant", content: assistantMessage }
       );
 
-      return assistantMessage;
+      // Build debug info
+      const debugInfo: ContributionDebugInfo = {
+        systemPrompt: this.expert.systemPrompt,
+        userPrompt: prompt,
+        contextProvided: context || [],
+        conversationHistory: [...this.conversationHistory],
+        model: this.model,
+        temperature: this.temperature,
+        maxTokens: this.maxTokens,
+      };
+
+      return {
+        content: assistantMessage,
+        debug: debugInfo,
+      };
     } catch (error) {
       console.error(`Error generating response for ${this.expert.name}:`, error);
       throw error;
     }
   }
 
-  async react(previousContributions: Contribution[]): Promise<string> {
+  async react(previousContributions: Contribution[]): Promise<GenerateResponse> {
     const context = previousContributions.map(
       (c) => `[${c.agentName}]: ${c.content}`
     );
