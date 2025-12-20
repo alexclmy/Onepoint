@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ActionSelector } from "@/components/analysis/action-selector";
 import { ExpertSelector } from "@/components/analysis/expert-selector";
 import { AnalysisInput } from "@/components/analysis/analysis-input";
@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionType, Contribution, UserQuestion, Company } from "@/types";
 import { Play, Download } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
 export default function HomePage() {
-  // TODO: Load companies from Supabase
-  const [companies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
 
   const [userInput, setUserInput] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -26,6 +26,35 @@ export default function HomePage() {
   const [timeline, setTimeline] = useState<Contribution[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<UserQuestion | null>(null);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+
+  useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  const loadCompanies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("company")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Erreur lors du chargement des entreprises:", error);
+        return;
+      }
+
+      // Transform database dates to Date objects
+      const transformedData = (data || []).map((company) => ({
+        ...company,
+        createdAt: new Date(company.created_at),
+        updatedAt: new Date(company.updated_at),
+      }));
+
+      setCompanies(transformedData);
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+  };
 
   const canStartAnalysis =
     userInput.trim().length > 0 &&
