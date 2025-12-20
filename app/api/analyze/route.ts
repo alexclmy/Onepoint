@@ -3,6 +3,11 @@ import { ActionType, Contribution, UserQuestion, Expert } from "@/types";
 import { AgentOrchestrator } from "@/lib/agents/orchestrator";
 import { supabase } from "@/lib/supabase/client";
 import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
+import {
+  createAnalysis,
+  completeAnalysis,
+  failAnalysis,
+} from "@/lib/supabase/analyses";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +25,19 @@ export async function POST(request: NextRequest) {
     // Validate input
     if (!userInput || !selectedActions.length || !selectedExperts.length) {
       return new Response("Invalid input", { status: 400 });
+    }
+
+    // Create analysis record in database
+    const { id: analysisId, error: createError } = await createAnalysis({
+      userInput,
+      selectedActions,
+      selectedExperts,
+      userInvolved,
+    });
+
+    if (createError || !analysisId) {
+      console.error("Failed to create analysis:", createError);
+      return new Response("Failed to create analysis", { status: 500 });
     }
 
     // Load custom experts from Supabase
@@ -85,9 +103,21 @@ export async function POST(request: NextRequest) {
 
           const result = await orchestrator.runAnalysis();
 
+          // Save final results to database
+          const { error: completeError } = await completeAnalysis(analysisId, {
+            timeline: result.timeline,
+            result: result.finalOutput,
+            // pdfUrl will be added later when PDF is generated
+          });
+
+          if (completeError) {
+            console.error("Failed to save analysis results:", completeError);
+          }
+
           sendEvent({
             type: "complete",
             result: {
+              analysisId, // Send analysis ID to client
               timeline: result.timeline,
               finalOutput: result.finalOutput,
             },
@@ -96,6 +126,13 @@ export async function POST(request: NextRequest) {
           controller.close();
         } catch (error) {
           console.error("Orchestration error:", error);
+
+          // Mark analysis as failed in database
+          await failAnalysis(
+            analysisId,
+            error instanceof Error ? error.message : "Unknown error"
+          );
+
           sendEvent({
             type: "error",
             error: error instanceof Error ? error.message : "Unknown error",
