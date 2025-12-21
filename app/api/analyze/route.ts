@@ -3,6 +3,11 @@ import { ActionType, Contribution, UserQuestion, Expert } from "@/types";
 import { AgentOrchestrator } from "@/lib/agents/orchestrator";
 import { supabase } from "@/lib/supabase/client";
 import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
+import {
+  createAnalysis,
+  completeAnalysis,
+  failAnalysis,
+} from "@/lib/supabase/analyses";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,11 +15,12 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userInput, selectedActions, selectedExperts, userInvolved, companyContext } = body as {
+    const { userInput, selectedActions, selectedExperts, userInvolved, useWebSearch, companyContext } = body as {
       userInput: string;
       selectedActions: ActionType[];
       selectedExperts: string[];
       userInvolved: boolean;
+      useWebSearch?: boolean;
       companyContext?: any;
     };
 
@@ -23,29 +29,57 @@ export async function POST(request: NextRequest) {
       return new Response("Invalid input", { status: 400 });
     }
 
-    // Create analysis record in database
-    const { data: analysisRecord, error: insertError } = await supabase
-      .from("analyses")
-      .insert([
-        {
-          user_input: userInput,
-          selected_actions: selectedActions,
-          selected_experts: selectedExperts,
-          user_involved: userInvolved,
-          status: "running",
-          timeline: [],
-          result: null,
-        },
-      ])
-      .select()
-      .single();
+    // Enrich user input with company context if provided
+    let enrichedUserInput = userInput;
+    if (companyContext) {
+      const contextParts: string[] = [userInput];
 
-    if (insertError) {
-      console.error("Error creating analysis record:", insertError);
-      return new Response("Error creating analysis", { status: 500 });
+      if (companyContext.name) {
+        contextParts.push(`\n\n**Contexte Entreprise: ${companyContext.name}**`);
+      }
+      if (companyContext.industry) {
+        contextParts.push(`Industrie: ${companyContext.industry}`);
+      }
+      if (companyContext.description) {
+        contextParts.push(`Description: ${companyContext.description}`);
+      }
+      if (companyContext.targetMarket) {
+        contextParts.push(`Marché cible: ${companyContext.targetMarket}`);
+      }
+      if (companyContext.competitors && companyContext.competitors.length > 0) {
+        contextParts.push(`Concurrents: ${companyContext.competitors.join(", ")}`);
+      }
+      if (companyContext.uniqueSellingPoints && companyContext.uniqueSellingPoints.length > 0) {
+        contextParts.push(`Points de différenciation: ${companyContext.uniqueSellingPoints.join(", ")}`);
+      }
+      if (companyContext.values && companyContext.values.length > 0) {
+        contextParts.push(`Valeurs: ${companyContext.values.join(", ")}`);
+      }
+      if (companyContext.glossary && companyContext.glossary.length > 0) {
+        contextParts.push(`\nGlossaire:`);
+        companyContext.glossary.forEach((term: any) => {
+          contextParts.push(`- ${term.term}: ${term.definition}`);
+        });
+      }
+      if (companyContext.customContext) {
+        contextParts.push(`\nContexte additionnel: ${companyContext.customContext}`);
+      }
+
+      enrichedUserInput = contextParts.join("\n");
     }
 
-    const analysisId = analysisRecord.id;
+    // Create analysis record in database
+    const { id: analysisId, error: createError } = await createAnalysis({
+      userInput,
+      selectedActions,
+      selectedExperts,
+      userInvolved,
+    });
+
+    if (createError || !analysisId) {
+      console.error("Failed to create analysis:", createError);
+      return new Response("Failed to create analysis", { status: 500 });
+    }
 
     // Load custom experts from Supabase
     let allExperts = [...PREDEFINED_EXPERTS];
@@ -85,11 +119,12 @@ export async function POST(request: NextRequest) {
 
         try {
           const orchestrator = new AgentOrchestrator({
-            userInput,
+            userInput: enrichedUserInput, // Use enriched input with company context
             selectedActions,
             selectedExperts,
             userInvolved,
             allExperts, // Pass all experts (predefined + custom)
+            useWebSearch: useWebSearch || false, // Enable web search if requested
             onContribution: (contribution: Contribution) => {
               sendEvent({
                 type: "contribution",
@@ -110,25 +145,21 @@ export async function POST(request: NextRequest) {
 
           const result = await orchestrator.runAnalysis();
 
-          // Save final result to database
-          const { error: updateError } = await supabase
-            .from("analyses")
-            .update({
-              status: "completed",
-              timeline: result.timeline,
-              result: result.finalOutput,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", analysisId);
+          // Save final results to database
+          const { error: completeError } = await completeAnalysis(analysisId, {
+            timeline: result.timeline,
+            result: result.finalOutput,
+            // pdfUrl will be added later when PDF is generated
+          });
 
-          if (updateError) {
-            console.error("Error updating analysis:", updateError);
+          if (completeError) {
+            console.error("Failed to save analysis results:", completeError);
           }
 
           sendEvent({
             type: "complete",
             result: {
-              analysisId,
+              analysisId, // Send analysis ID to client
               timeline: result.timeline,
               finalOutput: result.finalOutput,
             },
@@ -138,14 +169,11 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           console.error("Orchestration error:", error);
 
-          // Update status to failed
-          await supabase
-            .from("analyses")
-            .update({
-              status: "failed",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", analysisId);
+          // Mark analysis as failed in database
+          await failAnalysis(
+            analysisId,
+            error instanceof Error ? error.message : "Unknown error"
+          );
 
           sendEvent({
             type: "error",

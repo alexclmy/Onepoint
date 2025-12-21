@@ -14,6 +14,7 @@ export interface OrchestrationConfig {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  useWebSearch?: boolean; // Enable web search for agents
 }
 
 export interface OrchestrationResult {
@@ -49,7 +50,8 @@ export class AgentOrchestrator {
         expert,
         this.config.model,
         this.config.temperature,
-        this.config.maxTokens
+        this.config.maxTokens,
+        this.config.useWebSearch || false
       );
       this.agents.set(expert.id, agent);
     });
