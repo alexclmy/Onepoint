@@ -89,6 +89,19 @@ export class HybridOrchestrator {
       debug,
     };
 
+    // Log debug status for troubleshooting
+    if (!debug) {
+      console.warn(`⚠️ [ORCHESTRATOR] Contribution sans debug pour ${agentName} (${type})`);
+    } else {
+      console.log(`✅ [ORCHESTRATOR] Contribution avec debug pour ${agentName}:`, {
+        hasSystemPrompt: !!debug.systemPrompt,
+        hasUserPrompt: !!debug.userPrompt,
+        model: debug.model,
+        temperature: debug.temperature,
+        webSearchesCount: debug.webSearches?.length || 0,
+      });
+    }
+
     this.contributions.push(contribution);
 
     if (this.config.onContribution) {
