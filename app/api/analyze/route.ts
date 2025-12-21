@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ActionType, Contribution, UserQuestion, Expert } from "@/types";
-import { AgentOrchestrator } from "@/lib/agents/orchestrator";
+import { HybridOrchestrator } from "@/lib/agents/hybrid-orchestrator";
 import { supabase } from "@/lib/supabase/client";
 import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
 import {
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
             rawConfig: llmConfig,
           });
 
-          // Use user config or fallback to defaults
-          const model = llmConfig?.model || "gpt-4-turbo-preview";
+          // Use user config or fallback to defaults (GPT-5.2 is the new default)
+          const model = llmConfig?.model || "gpt-5.2";
           const temperature = llmConfig?.temperature ?? 0.7;
           const maxTokens = llmConfig?.max_tokens || 4000;
 
@@ -147,14 +147,17 @@ export async function POST(request: NextRequest) {
           });
 
           // Additional debug: show what will be passed to orchestrator
-          console.log("🔧 [DEBUG] Paramètres qui seront passés à l'orchestrateur:", {
+          console.log("🔧 [DEBUG] Paramètres pour Hybrid Orchestrator (Responses API):", {
             model,
             temperature,
             maxTokens,
             useWebSearch: useWebSearch || false,
+            usingResponsesAPI: true,
+            nativeWebSearch: true,
           });
 
-          const orchestrator = new AgentOrchestrator({
+          // Use Hybrid Orchestrator with Responses API and native web search
+          const orchestrator = new HybridOrchestrator({
             userInput: enrichedUserInput, // Use enriched input with company context
             selectedActions,
             selectedExperts,
