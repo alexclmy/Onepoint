@@ -193,19 +193,34 @@ export function AnalysisResults({ isAnalyzing, events }: AnalysisResultsProps) {
                                 {getContributionLabel(contribution.type)}
                               </Badge>
                             </div>
-                            {contribution.debug && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDebugContribution(contribution);
-                                }}
-                                className="flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors shadow-sm"
-                                title="Voir les détails techniques (prompts, config LLM, recherches web)"
-                              >
-                                <Info className="h-4 w-4" />
-                                🔍 Debug
-                              </button>
-                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!contribution.debug) {
+                                  console.warn("⚠️ Contribution sans données debug:", contribution);
+                                  alert("Aucune donnée de debug disponible pour cette contribution.");
+                                  return;
+                                }
+                                setDebugContribution(contribution);
+                              }}
+                              className={`flex items-center gap-1 rounded px-3 py-1.5 text-xs font-medium transition-colors shadow-sm ${
+                                contribution.debug
+                                  ? "bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900"
+                                  : "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                              }`}
+                              title={contribution.debug
+                                ? "Voir les détails techniques (prompts, config LLM, recherches web)"
+                                : "Données de debug non disponibles"}
+                              disabled={!contribution.debug}
+                            >
+                              <Info className="h-4 w-4" />
+                              🔍 Debug
+                              {contribution.debug?.webSearches && contribution.debug.webSearches.length > 0 && (
+                                <span className="ml-1 rounded-full bg-green-500 px-1.5 py-0.5 text-[10px] text-white">
+                                  {contribution.debug.webSearches.length}
+                                </span>
+                              )}
+                            </button>
                           </div>
 
                           {/* Content */}
