@@ -305,6 +305,66 @@ export function AnalysisResults({ isAnalyzing, events }: AnalysisResultsProps) {
                 </div>
               </div>
 
+              {/* Web Searches */}
+              {debugContribution.debug.webSearches && debugContribution.debug.webSearches.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Recherches web effectuées ({debugContribution.debug.webSearches.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {debugContribution.debug.webSearches.map((search, idx) => (
+                      <div key={idx} className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-3">
+                        <div className="mb-2">
+                          <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">Requête #{idx + 1}</span>
+                          <p className="font-mono text-sm mt-1">"{search.query}"</p>
+                          <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                            <span>Profondeur: {search.searchDepth}</span>
+                            <span>Résultats: {search.resultsCount}</span>
+                          </div>
+                        </div>
+
+                        {search.answer && (
+                          <div className="mb-2 p-2 rounded bg-white dark:bg-gray-900">
+                            <span className="text-xs font-semibold">Réponse directe:</span>
+                            <p className="text-sm mt-1">{search.answer}</p>
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <span className="text-xs font-semibold">Sources trouvées:</span>
+                          {search.results.map((result, ridx) => (
+                            <div key={ridx} className="p-2 rounded bg-white dark:bg-gray-900 text-xs">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <p className="font-semibold">{result.title}</p>
+                                  <a
+                                    href={result.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline text-[10px] break-all"
+                                  >
+                                    {result.url}
+                                  </a>
+                                  <p className="text-muted-foreground mt-1 line-clamp-2">{result.content}</p>
+                                </div>
+                                {result.score && (
+                                  <span className="text-[10px] font-mono bg-green-100 dark:bg-green-900 px-1 py-0.5 rounded">
+                                    {(result.score * 100).toFixed(0)}%
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* System Prompt */}
               <div>
                 <h3 className="font-semibold mb-2">System Prompt</h3>

@@ -126,11 +126,18 @@ export async function POST(request: NextRequest) {
             .limit(1)
             .maybeSingle();
 
-          console.log("📋 LLM Config loaded:", llmConfig ? {
-            model: llmConfig.model,
-            temperature: llmConfig.temperature,
-            maxTokens: llmConfig.max_tokens
-          } : "No config found, using defaults");
+          // Use user config or fallback to defaults
+          const model = llmConfig?.model || "gpt-4-turbo-preview";
+          const temperature = llmConfig?.temperature ?? 0.7;
+          const maxTokens = llmConfig?.max_tokens || 4000;
+
+          console.log("🤖 LLM Configuration:", {
+            source: llmConfig ? "User Config (from database)" : "Default Values",
+            model,
+            temperature,
+            maxTokens,
+            webSearch: useWebSearch || false,
+          });
 
           const orchestrator = new AgentOrchestrator({
             userInput: enrichedUserInput, // Use enriched input with company context
@@ -139,9 +146,9 @@ export async function POST(request: NextRequest) {
             userInvolved,
             allExperts, // Pass all experts (predefined + custom)
             useWebSearch: useWebSearch || false, // Enable web search if requested
-            model: llmConfig?.model, // Apply user's model choice
-            temperature: llmConfig?.temperature, // Apply user's temperature
-            maxTokens: llmConfig?.max_tokens, // Apply user's max tokens
+            model, // Apply user's model choice or default
+            temperature, // Apply user's temperature or default
+            maxTokens, // Apply user's max tokens or default
             onContribution: (contribution: Contribution) => {
               sendEvent({
                 type: "contribution",
