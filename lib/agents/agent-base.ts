@@ -1,4 +1,4 @@
-import { Expert, AgentMessage, Contribution, ContributionDebugInfo } from "@/types";
+import { Expert, AgentMessage, Contribution, ContributionDebugInfo, WebSearchDebugInfo } from "@/types";
 import { openai, DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS } from "@/lib/openai/client";
 import { availableTools } from "@/lib/web-search/tools";
 import { searchWeb, formatSearchResultsForAI } from "@/lib/web-search/search-service";
@@ -29,6 +29,14 @@ export class Agent {
     this.temperature = temperature;
     this.maxTokens = maxTokens;
     this.useWebSearch = useWebSearch;
+
+    // Debug: Log agent initialization
+    console.log(`🤖 [AGENT INIT] ${expert.name}:`, {
+      model: this.model,
+      temperature: this.temperature,
+      maxTokens: this.maxTokens,
+      webSearch: this.useWebSearch,
+    });
   }
 
   getExpert(): Expert {
@@ -73,11 +81,24 @@ export class Agent {
       if (this.useWebSearch) {
         requestParams.tools = availableTools;
         requestParams.tool_choice = "auto";
+        console.log(`🔧 [${this.expert.name}] Web search activée - tools ajoutés`);
       }
+
+      // Debug: Log OpenAI request params
+      console.log(`📤 [OPENAI CALL] ${this.expert.name}:`, {
+        model: requestParams.model,
+        temperature: requestParams.temperature,
+        max_tokens: requestParams.max_tokens,
+        hasTools: !!requestParams.tools,
+        messageCount: requestParams.messages.length,
+      });
 
       const response = await openai.chat.completions.create(requestParams);
 
       const responseMessage = response.choices[0]?.message;
+
+      // Track web searches for debug
+      const webSearches: WebSearchDebugInfo[] = [];
 
       // Check if the model wants to call a function
       if (responseMessage?.tool_calls && this.useWebSearch) {
@@ -91,14 +112,27 @@ export class Agent {
         for (const toolCall of toolCalls) {
           if (toolCall.type === "function" && toolCall.function.name === "search_web") {
             const args = JSON.parse(toolCall.function.arguments);
-            console.log(`🔍 Agent ${this.expert.name} recherche sur le web: "${args.query}"`);
+            const searchDepth = args.search_depth || "basic";
+
+            console.log(`🔍 Agent ${this.expert.name} recherche sur le web: "${args.query}" (depth: ${searchDepth})`);
 
             // Execute web search
             const searchResults = await searchWeb(args.query, {
-              searchDepth: args.search_depth || "basic",
+              searchDepth,
               includeAnswer: true,
               maxResults: 5,
             });
+
+            // Capture search for debug
+            webSearches.push({
+              query: args.query,
+              searchDepth,
+              resultsCount: searchResults.results.length,
+              results: searchResults.results,
+              answer: searchResults.answer,
+            });
+
+            console.log(`✅ Recherche terminée: ${searchResults.results.length} résultats trouvés`);
 
             // Format results for AI
             const formattedResults = formatSearchResultsForAI(searchResults);
@@ -128,7 +162,7 @@ export class Agent {
           { role: "assistant", content: assistantMessage }
         );
 
-        // Build debug info
+        // Build debug info with web searches
         const debugInfo: ContributionDebugInfo = {
           systemPrompt: this.expert.systemPrompt,
           userPrompt: prompt,
@@ -137,6 +171,7 @@ export class Agent {
           model: this.model,
           temperature: this.temperature,
           maxTokens: this.maxTokens,
+          webSearches: webSearches.length > 0 ? webSearches : undefined,
         };
 
         return {
@@ -153,7 +188,7 @@ export class Agent {
           { role: "assistant", content: assistantMessage }
         );
 
-        // Build debug info
+        // Build debug info (no web searches)
         const debugInfo: ContributionDebugInfo = {
           systemPrompt: this.expert.systemPrompt,
           userPrompt: prompt,
@@ -162,6 +197,7 @@ export class Agent {
           model: this.model,
           temperature: this.temperature,
           maxTokens: this.maxTokens,
+          webSearches: undefined, // No searches performed
         };
 
         return {

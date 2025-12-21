@@ -1,9 +1,15 @@
-import { Agent } from "./agent-base";
+/**
+ * Hybrid Orchestrator using Responses API
+ * Simplified orchestration without LangGraph for now
+ * Uses OpenAI Responses API with native web search
+ */
+
+import { ResponsesAgent } from "./responses-agent";
 import { Expert, ActionType, Contribution, UserQuestion, ContributionDebugInfo } from "@/types";
 import { ACTIONS } from "@/lib/actions/action-definitions";
 import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
 
-export interface OrchestrationConfig {
+export interface HybridOrchestrationConfig {
   userInput: string;
   selectedActions: ActionType[];
   selectedExperts: string[]; // Expert IDs
@@ -17,19 +23,19 @@ export interface OrchestrationConfig {
   useWebSearch?: boolean; // Enable web search for agents
 }
 
-export interface OrchestrationResult {
+export interface HybridOrchestrationResult {
   timeline: Contribution[];
   finalOutput: string;
   questionsAsked: UserQuestion[];
 }
 
-export class AgentOrchestrator {
-  private agents: Map<string, Agent>;
+export class HybridOrchestrator {
+  private agents: Map<string, ResponsesAgent>;
   private contributions: Contribution[];
-  private config: OrchestrationConfig;
+  private config: HybridOrchestrationConfig;
   private questionsAsked: UserQuestion[];
 
-  constructor(config: OrchestrationConfig) {
+  constructor(config: HybridOrchestrationConfig) {
     this.config = config;
     this.agents = new Map();
     this.contributions = [];
@@ -46,7 +52,7 @@ export class AgentOrchestrator {
     );
 
     experts.forEach((expert) => {
-      const agent = new Agent(
+      const agent = new ResponsesAgent(
         expert,
         this.config.model,
         this.config.temperature,
@@ -54,6 +60,13 @@ export class AgentOrchestrator {
         this.config.useWebSearch || false
       );
       this.agents.set(expert.id, agent);
+    });
+
+    console.log("🔧 [HYBRID ORCHESTRATOR] Initialized with:", {
+      agentsCount: this.agents.size,
+      webSearch: this.config.useWebSearch,
+      model: this.config.model,
+      usingResponsesAPI: true,
     });
   }
 
@@ -113,8 +126,8 @@ export class AgentOrchestrator {
     return answer;
   }
 
-  async runAnalysis(): Promise<OrchestrationResult> {
-    console.log("🚀 Starting multi-agent analysis...");
+  async runAnalysis(): Promise<HybridOrchestrationResult> {
+    console.log("🚀 [HYBRID ORCHESTRATOR] Starting multi-agent analysis with Responses API...");
 
     // Phase 1: Initial Analysis by each expert for each action
     for (const actionType of this.config.selectedActions) {
@@ -132,7 +145,6 @@ export class AgentOrchestrator {
       for (const agent of relevantAgents) {
         const expert = agent.getExpert();
 
-        // Build prompt with web search instructions if enabled
         let prompt = `En tant qu'expert ${expert.role}, analyse la demande suivante du point de vue de ton expertise :
 
 Demande: ${this.config.userInput}
@@ -144,15 +156,14 @@ Action à réaliser: ${action.name} - ${action.description}`;
           prompt += `
 
 🔍 IMPORTANT - RECHERCHE WEB ACTIVÉE :
-Tu as accès à l'outil "search_web" pour rechercher des informations récentes et actualisées sur internet.
-UTILISE CET OUTIL pour :
-- Obtenir des données à jour (chiffres, tendances, actualités)
+Tu as accès à des recherches web natives pour obtenir des informations récentes et actualisées.
+UTILISE cette capacité pour :
+- Obtenir des données à jour (chiffres, tendances, actualités 2025)
 - Vérifier des informations sur des entreprises, marchés ou technologies
 - Trouver des exemples concrets et des cas d'usage récents
 - Enrichir ton analyse avec des sources fiables et actuelles
 
-Pour utiliser la recherche web, appelle la fonction search_web avec une requête pertinente.
-Exemple : Pour analyser Tesla, recherche "Tesla market analysis 2025" ou "Tesla latest news strategy"`;
+Les citations seront automatiquement ajoutées à ta réponse.`;
         }
 
         prompt += `
@@ -310,7 +321,7 @@ Format attendu :
       finalOutput.debug
     );
 
-    console.log("✅ Analysis complete!");
+    console.log("✅ [HYBRID ORCHESTRATOR] Analysis complete!");
 
     return {
       timeline: this.contributions,

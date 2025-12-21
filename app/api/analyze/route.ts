@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ActionType, Contribution, UserQuestion, Expert } from "@/types";
-import { AgentOrchestrator } from "@/lib/agents/orchestrator";
+import { HybridOrchestrator } from "@/lib/agents/hybrid-orchestrator";
 import { supabase } from "@/lib/supabase/client";
 import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
 import {
@@ -118,13 +118,55 @@ export async function POST(request: NextRequest) {
         };
 
         try {
-          const orchestrator = new AgentOrchestrator({
+          // Load LLM configuration from Supabase
+          const { data: llmConfig, error: configError } = await supabase
+            .from("llm_configs")
+            .select("*")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          // Debug: Log raw config from database
+          console.log("🔍 [DEBUG] Config chargée depuis Supabase:", {
+            hasConfig: !!llmConfig,
+            error: configError,
+            rawConfig: llmConfig,
+          });
+
+          // Use user config or fallback to defaults (GPT-5.2 is the new default)
+          const model = llmConfig?.model || "gpt-5.2";
+          const temperature = llmConfig?.temperature ?? 0.7;
+          const maxTokens = llmConfig?.max_tokens || 4000;
+
+          console.log("🤖 [ANALYSE DÉMARRAGE] Configuration LLM:", {
+            source: llmConfig ? "✅ Config utilisateur (BDD)" : "⚠️ Valeurs par défaut",
+            model,
+            temperature,
+            maxTokens,
+            webSearchActivée: useWebSearch || false,
+          });
+
+          // Additional debug: show what will be passed to orchestrator
+          console.log("🔧 [DEBUG] Paramètres pour Hybrid Orchestrator (Responses API):", {
+            model,
+            temperature,
+            maxTokens,
+            useWebSearch: useWebSearch || false,
+            usingResponsesAPI: true,
+            nativeWebSearch: true,
+          });
+
+          // Use Hybrid Orchestrator with Responses API and native web search
+          const orchestrator = new HybridOrchestrator({
             userInput: enrichedUserInput, // Use enriched input with company context
             selectedActions,
             selectedExperts,
             userInvolved,
             allExperts, // Pass all experts (predefined + custom)
             useWebSearch: useWebSearch || false, // Enable web search if requested
+            model, // Apply user's model choice or default
+            temperature, // Apply user's temperature or default
+            maxTokens, // Apply user's max tokens or default
             onContribution: (contribution: Contribution) => {
               sendEvent({
                 type: "contribution",

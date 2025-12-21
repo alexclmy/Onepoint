@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ActionSelector } from "@/components/analysis/action-selector";
 import { ExpertSelector } from "@/components/analysis/expert-selector";
 import { AnalysisInput } from "@/components/analysis/analysis-input";
@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase/client";
 
 export default function HomePage() {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const [userInput, setUserInput] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -69,7 +70,28 @@ export default function HomePage() {
     setTimeline([]);
     setAnalysisComplete(false);
 
+    // Scroll automatiquement vers la section des résultats
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+
     try {
+      // Find selected company and prepare context
+      const selectedCompany = companies.find((c) => c.id === selectedCompanyId);
+      const companyContext = selectedCompany
+        ? {
+            name: selectedCompany.name,
+            industry: selectedCompany.industry,
+            description: selectedCompany.description,
+            targetMarket: selectedCompany.targetMarket,
+            competitors: selectedCompany.competitors,
+            uniqueSellingPoints: selectedCompany.uniqueSellingPoints,
+            values: selectedCompany.values,
+            glossary: selectedCompany.glossary,
+            customContext: selectedCompany.customContext,
+          }
+        : null;
+
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,9 +99,9 @@ export default function HomePage() {
           userInput,
           selectedActions,
           selectedExperts,
-          selectedCompanyId,
           userInvolved,
           useWebSearch,
+          companyContext, // ✅ Send full context instead of just ID
         }),
       });
 
@@ -227,7 +249,7 @@ export default function HomePage() {
 
         {/* Timeline Section */}
         {timeline.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4" ref={resultsRef}>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Timeline des Contributions</h2>
               {analysisComplete && (

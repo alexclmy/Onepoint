@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 
-export const DEFAULT_MODEL = "gpt-4-turbo-preview";
+// Updated to GPT-5.2 (latest model as of 2025)
+export const DEFAULT_MODEL = "gpt-5.2";
 export const DEFAULT_TEMPERATURE = 0.7;
 export const DEFAULT_MAX_TOKENS = 4000;
 

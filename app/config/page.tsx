@@ -13,7 +13,7 @@ export default function ConfigPage() {
   const [config, setConfig] = useState({
     id: "",
     provider: "openai",
-    model: "gpt-4-turbo-preview",
+    model: "gpt-5.2", // Default to latest GPT-5.2 model
     temperature: 0.7,
     maxTokens: 4000,
   });
@@ -164,14 +164,47 @@ export default function ConfigPage() {
             {/* Model */}
             <div className="space-y-2">
               <Label htmlFor="model">Modèle</Label>
-              <Input
+              <select
                 id="model"
                 value={config.model}
                 onChange={(e) => setConfig({ ...config, model: e.target.value })}
-                placeholder="gpt-4-turbo-preview"
-              />
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <optgroup label="🚀 GPT-5 Series (2025 - Recommandés)">
+                  <option value="gpt-5.2">GPT-5.2 (Dernier - Décembre 2025)</option>
+                  <option value="gpt-5.1">GPT-5.1 (Flagship - Novembre 2025)</option>
+                  <option value="gpt-5">GPT-5 (Août 2025)</option>
+                  <option value="gpt-5-mini">GPT-5 Mini (Rapide & économique)</option>
+                </optgroup>
+                <optgroup label="💻 Coding Models">
+                  <option value="gpt-5.1-codex-max">GPT-5.1 Codex Max (Agentic coding)</option>
+                  <option value="gpt-5-codex">GPT-5 Codex (Optimisé Codex CLI)</option>
+                </optgroup>
+                <optgroup label="🧠 Reasoning Models (o-Series)">
+                  <option value="o3">o3 (Math, Science, Coding)</option>
+                  <option value="o4-mini">o4-mini (Rapide & efficient)</option>
+                </optgroup>
+                <optgroup label="GPT-4.1 Series (1M tokens context)">
+                  <option value="gpt-4.1">GPT-4.1 (Improved instructions)</option>
+                  <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+                  <option value="gpt-4.1-nano">GPT-4.1 Nano (Premier nano model)</option>
+                </optgroup>
+                <optgroup label="GPT-4o Series">
+                  <option value="gpt-4o">GPT-4o (Multimodal)</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini (Économique)</option>
+                  <option value="gpt-4o-audio-preview">GPT-4o Audio (Audio I/O)</option>
+                </optgroup>
+                <optgroup label="Legacy Models">
+                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                </optgroup>
+              </select>
               <p className="text-xs text-muted-foreground">
-                Modèles recommandés : gpt-4-turbo-preview, gpt-4, gpt-3.5-turbo
+                📊 Source : <a href="https://platform.openai.com/docs/models" target="_blank" rel="noopener noreferrer" className="underline">Documentation officielle OpenAI (Décembre 2025)</a>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                ⭐ Recommandés : <strong>GPT-5.2</strong> (meilleure performance), <strong>GPT-5 Mini</strong> (rapide), <strong>o3</strong> (raisonnement)
               </p>
             </div>
 
@@ -247,12 +280,17 @@ export default function ConfigPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <strong>Coût estimé par analyse :</strong> Variable selon la complexité
+              <strong>Coût estimé par analyse :</strong> Variable selon la complexité et le modèle
             </p>
             <p>
-              <strong>Modèle recommandé :</strong> gpt-4-turbo-preview pour de meilleurs résultats
+              <strong>Modèles recommandés (2025) :</strong>
             </p>
-            <p>
+            <ul className="list-disc list-inside ml-4 space-y-1">
+              <li><strong>GPT-5.2</strong> - Meilleure performance globale, multimodal avancé</li>
+              <li><strong>GPT-4o</strong> - Excellent rapport qualité/prix, très rapide</li>
+              <li><strong>GPT-4.1</strong> - Optimal pour analyses techniques et coding</li>
+            </ul>
+            <p className="mt-2">
               <strong>Temperature recommandée :</strong> 0.7 pour un bon équilibre créativité/cohérence
             </p>
           </CardContent>

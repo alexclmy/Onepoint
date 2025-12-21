@@ -38,6 +38,19 @@ export interface Action {
 }
 
 // Contribution Types
+export interface WebSearchDebugInfo {
+  query: string;
+  searchDepth: "basic" | "advanced";
+  resultsCount: number;
+  results: {
+    title: string;
+    url: string;
+    content: string;
+    score?: number;
+  }[];
+  answer?: string;
+}
+
 export interface ContributionDebugInfo {
   systemPrompt: string;
   userPrompt: string;
@@ -46,6 +59,7 @@ export interface ContributionDebugInfo {
   model: string;
   temperature: number;
   maxTokens: number;
+  webSearches?: WebSearchDebugInfo[]; // Track all web searches made
 }
 
 export interface Contribution {
