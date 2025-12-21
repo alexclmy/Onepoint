@@ -13,16 +13,22 @@ interface ActionSelectorProps {
 }
 
 export function ActionSelector({ selectedActions, onChange }: ActionSelectorProps) {
+  const MAX_ACTIONS = 3;
+
   const toggleAction = (actionId: ActionType) => {
     if (selectedActions.includes(actionId)) {
       onChange(selectedActions.filter((id) => id !== actionId));
     } else {
+      // Limite à 3 actions maximum
+      if (selectedActions.length >= MAX_ACTIONS) {
+        return; // Ne rien faire si déjà 3 actions sélectionnées
+      }
       onChange([...selectedActions, actionId]);
     }
   };
 
   const selectAll = () => {
-    onChange(ACTION_LIST.map((a) => a.id));
+    onChange(ACTION_LIST.slice(0, MAX_ACTIONS).map((a) => a.id));
   };
 
   const clearAll = () => {
@@ -36,7 +42,7 @@ export function ActionSelector({ selectedActions, onChange }: ActionSelectorProp
           <div>
             <CardTitle>Actions d'Analyse</CardTitle>
             <CardDescription>
-              Sélectionnez au moins une action à réaliser
+              Maximum {MAX_ACTIONS} actions • {selectedActions.length}/{MAX_ACTIONS} sélectionnées
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -72,6 +78,7 @@ export function ActionSelector({ selectedActions, onChange }: ActionSelectorProp
                     id={action.id}
                     checked={isSelected}
                     onCheckedChange={() => toggleAction(action.id)}
+                    disabled={!isSelected && selectedActions.length >= MAX_ACTIONS}
                   />
                   <div className="flex-1 space-y-1">
                     <label

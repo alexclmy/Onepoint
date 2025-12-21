@@ -199,11 +199,11 @@ export function AnalysisResults({ isAnalyzing, events }: AnalysisResultsProps) {
                                   e.stopPropagation();
                                   setDebugContribution(contribution);
                                 }}
-                                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                                title="Voir les détails techniques"
+                                className="flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors shadow-sm"
+                                title="Voir les détails techniques (prompts, config LLM, recherches web)"
                               >
                                 <Info className="h-4 w-4" />
-                                Debug
+                                🔍 Debug
                               </button>
                             )}
                           </div>

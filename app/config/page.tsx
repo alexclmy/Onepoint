@@ -170,27 +170,41 @@ export default function ConfigPage() {
                 onChange={(e) => setConfig({ ...config, model: e.target.value })}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <optgroup label="GPT-5 Series (2025 - Recommandés)">
-                  <option value="gpt-5.2">GPT-5.2 (Dernier modèle)</option>
-                  <option value="gpt-5.1">GPT-5.1 (Conversationnel)</option>
-                  <option value="gpt-5">GPT-5 (Multimodal avancé)</option>
+                <optgroup label="🚀 GPT-5 Series (2025 - Recommandés)">
+                  <option value="gpt-5.2">GPT-5.2 (Dernier - Décembre 2025)</option>
+                  <option value="gpt-5.1">GPT-5.1 (Flagship - Novembre 2025)</option>
+                  <option value="gpt-5">GPT-5 (Août 2025)</option>
+                  <option value="gpt-5-mini">GPT-5 Mini (Rapide & économique)</option>
                 </optgroup>
-                <optgroup label="GPT-4 Series">
-                  <option value="gpt-4o">GPT-4o (Flagship multimodal)</option>
-                  <option value="gpt-4.1">GPT-4.1 (Spécialisé coding)</option>
+                <optgroup label="💻 Coding Models">
+                  <option value="gpt-5.1-codex-max">GPT-5.1 Codex Max (Agentic coding)</option>
+                  <option value="gpt-5-codex">GPT-5 Codex (Optimisé Codex CLI)</option>
+                </optgroup>
+                <optgroup label="🧠 Reasoning Models (o-Series)">
+                  <option value="o3">o3 (Math, Science, Coding)</option>
+                  <option value="o4-mini">o4-mini (Rapide & efficient)</option>
+                </optgroup>
+                <optgroup label="GPT-4.1 Series (1M tokens context)">
+                  <option value="gpt-4.1">GPT-4.1 (Improved instructions)</option>
+                  <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+                  <option value="gpt-4.1-nano">GPT-4.1 Nano (Premier nano model)</option>
+                </optgroup>
+                <optgroup label="GPT-4o Series">
+                  <option value="gpt-4o">GPT-4o (Multimodal)</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini (Économique)</option>
+                  <option value="gpt-4o-audio-preview">GPT-4o Audio (Audio I/O)</option>
+                </optgroup>
+                <optgroup label="Legacy Models">
                   <option value="gpt-4-turbo">GPT-4 Turbo</option>
                   <option value="gpt-4">GPT-4</option>
-                  <option value="gpt-4o-mini">GPT-4o Mini (Économique)</option>
-                </optgroup>
-                <optgroup label="Reasoning Models">
-                  <option value="o4-mini">o4-mini (Raisonnement rapide)</option>
-                </optgroup>
-                <optgroup label="GPT-3.5 Series">
                   <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                 </optgroup>
               </select>
               <p className="text-xs text-muted-foreground">
-                Recommandés : GPT-5.2 (meilleur performance), GPT-4o (multimodal), GPT-4.1 (coding)
+                📊 Source : <a href="https://platform.openai.com/docs/models" target="_blank" rel="noopener noreferrer" className="underline">Documentation officielle OpenAI (Décembre 2025)</a>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                ⭐ Recommandés : <strong>GPT-5.2</strong> (meilleure performance), <strong>GPT-5 Mini</strong> (rapide), <strong>o3</strong> (raisonnement)
               </p>
             </div>
 

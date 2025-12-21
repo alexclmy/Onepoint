@@ -17,6 +17,7 @@ interface ExpertSelectorProps {
 }
 
 export function ExpertSelector({ selectedExperts, onChange }: ExpertSelectorProps) {
+  const MAX_EXPERTS = 3;
   const [searchQuery, setSearchQuery] = useState("");
   const [allExperts, setAllExperts] = useState<Expert[]>(PREDEFINED_EXPERTS);
 
@@ -65,12 +66,16 @@ export function ExpertSelector({ selectedExperts, onChange }: ExpertSelectorProp
     if (selectedExperts.includes(expertId)) {
       onChange(selectedExperts.filter((id) => id !== expertId));
     } else {
+      // Limite à 3 experts maximum
+      if (selectedExperts.length >= MAX_EXPERTS) {
+        return; // Ne rien faire si déjà 3 experts sélectionnés
+      }
       onChange([...selectedExperts, expertId]);
     }
   };
 
   const selectAll = () => {
-    onChange(allExperts.map((e) => e.id));
+    onChange(allExperts.slice(0, MAX_EXPERTS).map((e) => e.id));
   };
 
   const clearAll = () => {
@@ -84,7 +89,7 @@ export function ExpertSelector({ selectedExperts, onChange }: ExpertSelectorProp
           <div>
             <CardTitle>Experts</CardTitle>
             <CardDescription>
-              Sélectionnez les experts qui participeront à l'analyse
+              Maximum {MAX_EXPERTS} experts • {selectedExperts.length}/{MAX_EXPERTS} sélectionnés
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -133,6 +138,7 @@ export function ExpertSelector({ selectedExperts, onChange }: ExpertSelectorProp
                       id={expert.id}
                       checked={isSelected}
                       onCheckedChange={() => toggleExpert(expert.id)}
+                      disabled={!isSelected && selectedExperts.length >= MAX_EXPERTS}
                     />
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
