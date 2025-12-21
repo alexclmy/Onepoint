@@ -68,7 +68,7 @@ export class ResponsesAgent {
     console.log(`📤 [RESPONSES API CALL] ${this.expert.name}:`, {
       model: this.model,
       temperature: this.temperature,
-      max_tokens: this.maxTokens,
+      max_output_tokens: this.maxTokens,
       webSearchEnabled: this.useWebSearch,
       inputLength: fullInput.length,
     });
@@ -81,7 +81,7 @@ export class ResponsesAgent {
         result = await createResponseWithWebSearch(this.model, fullInput, {
           reasoning: { effort: "medium" },
           temperature: this.temperature,
-          max_tokens: this.maxTokens,
+          max_output_tokens: this.maxTokens,
         });
       } else {
         // Use Responses API without web search
@@ -91,7 +91,7 @@ export class ResponsesAgent {
           input: fullInput,
           reasoning: { effort: "medium" },
           temperature: this.temperature,
-          max_tokens: this.maxTokens,
+          max_output_tokens: this.maxTokens,
         });
       }
 

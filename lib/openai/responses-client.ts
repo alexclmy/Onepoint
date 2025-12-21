@@ -71,7 +71,7 @@ export interface CreateResponseOptions {
   }>;
   tool_choice?: "auto" | "required" | "none";
   temperature?: number;
-  max_tokens?: number;
+  max_output_tokens?: number;
 }
 
 /**
@@ -97,7 +97,7 @@ export async function createResponse(
       tool_choice: options.tool_choice || "auto",
       reasoning: options.reasoning,
       temperature: options.temperature,
-      max_tokens: options.max_tokens,
+      max_output_tokens: options.max_output_tokens,
     });
 
     console.log("✅ [RESPONSES API] Response received:", {
@@ -166,7 +166,7 @@ export async function createResponseWithWebSearch(
   options?: {
     reasoning?: { effort?: "low" | "medium" | "high" };
     temperature?: number;
-    max_tokens?: number;
+    max_output_tokens?: number;
     allowed_domains?: string[];
   }
 ): Promise<ResponsesAPIResult> {
@@ -184,6 +184,6 @@ export async function createResponseWithWebSearch(
     tool_choice: "auto",
     reasoning: options?.reasoning,
     temperature: options?.temperature,
-    max_tokens: options?.max_tokens,
+    max_output_tokens: options?.max_output_tokens,
   });
 }
