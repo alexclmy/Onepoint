@@ -131,11 +131,31 @@ export class AgentOrchestrator {
       // Round 1: Initial individual analyses
       for (const agent of relevantAgents) {
         const expert = agent.getExpert();
-        const prompt = `En tant qu'expert ${expert.role}, analyse la demande suivante du point de vue de ton expertise :
+
+        // Build prompt with web search instructions if enabled
+        let prompt = `En tant qu'expert ${expert.role}, analyse la demande suivante du point de vue de ton expertise :
 
 Demande: ${this.config.userInput}
 
-Action à réaliser: ${action.name} - ${action.description}
+Action à réaliser: ${action.name} - ${action.description}`;
+
+        // Add explicit web search instructions when enabled
+        if (this.config.useWebSearch) {
+          prompt += `
+
+🔍 IMPORTANT - RECHERCHE WEB ACTIVÉE :
+Tu as accès à l'outil "search_web" pour rechercher des informations récentes et actualisées sur internet.
+UTILISE CET OUTIL pour :
+- Obtenir des données à jour (chiffres, tendances, actualités)
+- Vérifier des informations sur des entreprises, marchés ou technologies
+- Trouver des exemples concrets et des cas d'usage récents
+- Enrichir ton analyse avec des sources fiables et actuelles
+
+Pour utiliser la recherche web, appelle la fonction search_web avec une requête pertinente.
+Exemple : Pour analyser Tesla, recherche "Tesla market analysis 2025" ou "Tesla latest news strategy"`;
+        }
+
+        prompt += `
 
 Fournis ton analyse initiale en te concentrant sur ton domaine d'expertise. Sois concis mais précis.`;
 
