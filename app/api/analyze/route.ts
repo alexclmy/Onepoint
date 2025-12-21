@@ -118,6 +118,20 @@ export async function POST(request: NextRequest) {
         };
 
         try {
+          // Load LLM configuration from Supabase
+          const { data: llmConfig } = await supabase
+            .from("llm_configs")
+            .select("*")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          console.log("📋 LLM Config loaded:", llmConfig ? {
+            model: llmConfig.model,
+            temperature: llmConfig.temperature,
+            maxTokens: llmConfig.max_tokens
+          } : "No config found, using defaults");
+
           const orchestrator = new AgentOrchestrator({
             userInput: enrichedUserInput, // Use enriched input with company context
             selectedActions,
@@ -125,6 +139,9 @@ export async function POST(request: NextRequest) {
             userInvolved,
             allExperts, // Pass all experts (predefined + custom)
             useWebSearch: useWebSearch || false, // Enable web search if requested
+            model: llmConfig?.model, // Apply user's model choice
+            temperature: llmConfig?.temperature, // Apply user's temperature
+            maxTokens: llmConfig?.max_tokens, // Apply user's max tokens
             onContribution: (contribution: Contribution) => {
               sendEvent({
                 type: "contribution",

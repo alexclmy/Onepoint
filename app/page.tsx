@@ -70,6 +70,22 @@ export default function HomePage() {
     setAnalysisComplete(false);
 
     try {
+      // Find selected company and prepare context
+      const selectedCompany = companies.find((c) => c.id === selectedCompanyId);
+      const companyContext = selectedCompany
+        ? {
+            name: selectedCompany.name,
+            industry: selectedCompany.industry,
+            description: selectedCompany.description,
+            targetMarket: selectedCompany.targetMarket,
+            competitors: selectedCompany.competitors,
+            uniqueSellingPoints: selectedCompany.uniqueSellingPoints,
+            values: selectedCompany.values,
+            glossary: selectedCompany.glossary,
+            customContext: selectedCompany.customContext,
+          }
+        : null;
+
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,9 +93,9 @@ export default function HomePage() {
           userInput,
           selectedActions,
           selectedExperts,
-          selectedCompanyId,
           userInvolved,
           useWebSearch,
+          companyContext, // ✅ Send full context instead of just ID
         }),
       });
 
