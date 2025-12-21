@@ -29,6 +29,14 @@ export class Agent {
     this.temperature = temperature;
     this.maxTokens = maxTokens;
     this.useWebSearch = useWebSearch;
+
+    // Debug: Log agent initialization
+    console.log(`🤖 [AGENT INIT] ${expert.name}:`, {
+      model: this.model,
+      temperature: this.temperature,
+      maxTokens: this.maxTokens,
+      webSearch: this.useWebSearch,
+    });
   }
 
   getExpert(): Expert {
@@ -73,7 +81,17 @@ export class Agent {
       if (this.useWebSearch) {
         requestParams.tools = availableTools;
         requestParams.tool_choice = "auto";
+        console.log(`🔧 [${this.expert.name}] Web search activée - tools ajoutés`);
       }
+
+      // Debug: Log OpenAI request params
+      console.log(`📤 [OPENAI CALL] ${this.expert.name}:`, {
+        model: requestParams.model,
+        temperature: requestParams.temperature,
+        max_tokens: requestParams.max_tokens,
+        hasTools: !!requestParams.tools,
+        messageCount: requestParams.messages.length,
+      });
 
       const response = await openai.chat.completions.create(requestParams);
 

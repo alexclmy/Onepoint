@@ -119,24 +119,39 @@ export async function POST(request: NextRequest) {
 
         try {
           // Load LLM configuration from Supabase
-          const { data: llmConfig } = await supabase
+          const { data: llmConfig, error: configError } = await supabase
             .from("llm_configs")
             .select("*")
             .order("updated_at", { ascending: false })
             .limit(1)
             .maybeSingle();
 
+          // Debug: Log raw config from database
+          console.log("🔍 [DEBUG] Config chargée depuis Supabase:", {
+            hasConfig: !!llmConfig,
+            error: configError,
+            rawConfig: llmConfig,
+          });
+
           // Use user config or fallback to defaults
           const model = llmConfig?.model || "gpt-4-turbo-preview";
           const temperature = llmConfig?.temperature ?? 0.7;
           const maxTokens = llmConfig?.max_tokens || 4000;
 
-          console.log("🤖 LLM Configuration:", {
-            source: llmConfig ? "User Config (from database)" : "Default Values",
+          console.log("🤖 [ANALYSE DÉMARRAGE] Configuration LLM:", {
+            source: llmConfig ? "✅ Config utilisateur (BDD)" : "⚠️ Valeurs par défaut",
             model,
             temperature,
             maxTokens,
-            webSearch: useWebSearch || false,
+            webSearchActivée: useWebSearch || false,
+          });
+
+          // Additional debug: show what will be passed to orchestrator
+          console.log("🔧 [DEBUG] Paramètres qui seront passés à l'orchestrateur:", {
+            model,
+            temperature,
+            maxTokens,
+            useWebSearch: useWebSearch || false,
           });
 
           const orchestrator = new AgentOrchestrator({
