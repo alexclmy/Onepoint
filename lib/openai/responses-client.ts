@@ -7,6 +7,21 @@
 import OpenAI from "openai";
 import { getOpenAIClient } from "./client";
 
+/**
+ * Check if a model is a reasoning model that doesn't support temperature
+ * GPT-5 and o-series models don't support temperature, top_p, presence_penalty, etc.
+ */
+function isReasoningModel(model: string): boolean {
+  const lowerModel = model.toLowerCase();
+  return (
+    lowerModel.startsWith("gpt-5") ||
+    lowerModel.startsWith("o3") ||
+    lowerModel.startsWith("o4") ||
+    lowerModel.startsWith("o1") ||
+    lowerModel.includes("reasoning")
+  );
+}
+
 export interface WebSearchAction {
   type: "search" | "open_page" | "find_in_page";
   query?: string;
@@ -82,23 +97,35 @@ export async function createResponse(
 ): Promise<ResponsesAPIResult> {
   const client = getOpenAIClient();
 
+  const isReasoning = isReasoningModel(options.model);
+
   console.log("🚀 [RESPONSES API] Creating response with:", {
     model: options.model,
+    isReasoningModel: isReasoning,
     hasWebSearch: options.tools?.some((t) => t.type === "web_search"),
     reasoning: options.reasoning,
+    temperatureSupported: !isReasoning,
   });
 
   try {
-    // Call the Responses API
-    const response = await (client as any).responses.create({
+    // Build API parameters
+    const apiParams: any = {
       model: options.model,
       input: options.input,
       tools: options.tools,
       tool_choice: options.tool_choice || "auto",
       reasoning: options.reasoning,
-      temperature: options.temperature,
       max_output_tokens: options.max_output_tokens,
-    });
+    };
+
+    // Only include temperature for non-reasoning models
+    // GPT-5 and o-series models don't support temperature
+    if (!isReasoning && options.temperature !== undefined) {
+      apiParams.temperature = options.temperature;
+    }
+
+    // Call the Responses API
+    const response = await (client as any).responses.create(apiParams);
 
     console.log("✅ [RESPONSES API] Response received:", {
       outputItemsCount: response.output?.length || 0,
