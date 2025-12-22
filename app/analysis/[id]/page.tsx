@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Timeline } from "@/components/analysis/timeline";
+import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -216,9 +217,7 @@ export default function AnalysisViewPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap">{analysis.result}</div>
-              </div>
+              <MarkdownRenderer content={analysis.result} />
             </CardContent>
           </Card>
         )}
