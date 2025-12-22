@@ -112,27 +112,58 @@ export default function HomePage() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
-      if (!reader) return;
+      if (!reader) {
+        console.error("❌ No reader available for response");
+        return;
+      }
+
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n\n");
+        if (done) {
+          console.log("✅ Stream completed");
+          break;
+        }
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = JSON.parse(line.slice(6));
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
 
-            if (data.type === "contribution") {
-              setTimeline((prev) => [...prev, data.contribution]);
-            } else if (data.type === "question") {
-              setCurrentQuestion(data.question);
-              // Wait for user response
-              // This would be handled by a modal or input component
-            } else if (data.type === "complete") {
-              setAnalysisComplete(true);
+        // Process complete messages (separated by \n\n)
+        const parts = buffer.split("\n\n");
+
+        // Keep the last incomplete part in the buffer
+        buffer = parts.pop() || "";
+
+        // Process each complete part
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          const lines = part.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const jsonData = line.slice(6);
+                const data = JSON.parse(jsonData);
+
+                console.log("📨 Received SSE event:", data.type);
+
+                if (data.type === "contribution") {
+                  console.log("➕ Adding contribution from", data.contribution.agentName);
+                  setTimeline((prev) => [...prev, data.contribution]);
+                } else if (data.type === "question") {
+                  setCurrentQuestion(data.question);
+                } else if (data.type === "complete") {
+                  console.log("✅ Analysis complete");
+                  setAnalysisComplete(true);
+                } else if (data.type === "error") {
+                  console.error("❌ Analysis error:", data.error);
+                  throw new Error(data.error);
+                }
+              } catch (parseError) {
+                console.error("❌ Failed to parse SSE data:", line, parseError);
+              }
             }
           }
         }
