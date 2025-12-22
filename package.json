@@ -30,7 +30,6 @@
     "jspdf-autotable": "^5.0.2",
     "langchain": "^1.2.2",
     "lucide-react": "^0.552.0",
-    "mermaid": "^11.12.2",
     "next": "15.0.7",
     "openai": "^6.8.1",
     "react": "^18.3.1",

@@ -109,42 +109,6 @@ export class HybridOrchestrator {
     }
   }
 
-  private getMermaidSuggestions(actionType: ActionType): string {
-    const suggestions: Record<ActionType, string> = {
-      swot: `- quadrantChart pour matrice SWOT 2×2
-- mindmap pour cartographier les idées`,
-      pestel: `- pie chart pour visualiser l'impact de chaque facteur
-- mindmap pour connecter les facteurs`,
-      porter: `- flowchart pour les 5 forces
-- mindmap pour les connexions stratégiques`,
-      "business-model-canvas": `- flowchart pour les flux de valeur
-- mindmap pour les connexions entre blocs`,
-      "competitive-analysis": `- quadrantChart pour positionner les concurrents
-- pie chart pour parts de marché`,
-      "market-sizing": `- pie chart pour segmentation
-- flowchart pour méthode de calcul`,
-      "risk-assessment": `- quadrantChart (probabilité vs impact)
-- flowchart pour cascade de risques`,
-      "product-roadmap": `- gantt pour timeline
-- flowchart pour dépendances`,
-      "value-proposition-canvas": `- flowchart pour jobs-pains-gains
-- mindmap pour connexions`,
-      "user-journey-mapping": `- flowchart pour parcours utilisateur
-- timeline pour étapes`,
-      "ux-audit": `- flowchart pour problèmes identifiés
-- pie chart pour priorités`,
-      "feature-prioritization": `- quadrantChart (effort vs impact)
-- pie chart pour distribution`,
-      bcg: `- quadrantChart pour matrice BCG
-- pie chart pour répartition portefeuille`,
-      "full-report": `- mindmap pour vue d'ensemble
-- flowchart pour processus complet
-- timeline pour chronologie`,
-    };
-
-    return suggestions[actionType] || "- flowchart, mindmap, ou pie chart selon les besoins";
-  }
-
   private async askUserQuestion(
     agentId: string,
     agentName: string,
@@ -218,22 +182,41 @@ Les citations seront automatiquement ajoutées à ta réponse.`;
         prompt += `
 
 📝 FORMAT DE RÉPONSE REQUIS :
-Utilise **Markdown** pour formater ta réponse de manière professionnelle :
-- Headers (## et ###) pour structurer les sections
-- **Gras** pour les points importants
-- Listes à puces ou numérotées pour l'organisation
-- Tableaux pour les données comparatives
-- Citations (>) pour les insights clés
+Utilise **Markdown** pour formater ta réponse de manière professionnelle et structurée :
 
-🎨 DIAGRAMMES VISUELS (si pertinent pour l'analyse) :
-Pour rendre ton analyse plus visuelle, utilise des diagrammes Mermaid en les plaçant dans des blocs de code :
+**Structure recommandée :**
+- **Headers** (## et ###) pour organiser les sections principales
+- **Gras** pour mettre en avant les points clés et importants
+- **Listes à puces** ou **numérotées** pour énumérer clairement les éléments
+- **Tableaux** pour présenter des données comparatives ou des matrices
+- **Citations** (>) pour souligner les insights et recommandations clés
+- **Séparateurs horizontaux** (---) pour délimiter les grandes sections
 
-\`\`\`mermaid
-// Ton diagramme ici
+**Présentation visuelle :**
+- Utilise des tableaux pour les analyses comparatives (ex: SWOT, concurrence)
+- Structure ton analyse avec des sections claires et hiérarchisées
+- Mets en évidence les éléments prioritaires avec du gras
+- Utilise des listes pour faciliter la lecture
+
+**Exemple de structure :**
 \`\`\`
+## Analyse Principale
 
-Types de diagrammes utiles selon l'action :
-${this.getMermaidSuggestions(actionType)}
+### Section 1
+- Point important
+- Détail complémentaire
+
+### Section 2
+| Critère | Évaluation | Impact |
+|---------|------------|--------|
+| ...     | ...        | ...    |
+
+> 💡 **Recommandation clé** : ...
+
+---
+
+## Conclusion
+\`\`\`
 
 Fournis ton analyse initiale en te concentrant sur ton domaine d'expertise. Sois concis mais précis et visuellement clair.`;
 
