@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
 import { Expert } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,29 +29,23 @@ import { Plus, Search, Edit, Trash2, Save, Loader2 } from "lucide-react";
 
 export default function ExpertsPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [customExperts, setCustomExperts] = useState<Expert[]>([]);
-  const [experts, setExperts] = useState<Expert[]>(PREDEFINED_EXPERTS);
+  const [experts, setExperts] = useState<Expert[]>([]);
   const [editingExpert, setEditingExpert] = useState<Expert | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    loadCustomExperts();
+    loadAllExperts();
   }, []);
 
-  useEffect(() => {
-    // Merge predefined and custom experts
-    setExperts([...PREDEFINED_EXPERTS, ...customExperts]);
-  }, [customExperts]);
-
-  const loadCustomExperts = async () => {
+  const loadAllExperts = async () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
         .from("experts")
         .select("*")
-        .eq("is_custom", true)
+        .order("is_predefined", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -68,11 +61,12 @@ export default function ExpertsPage() {
         tone: expert.tone as Expert["tone"],
         systemPrompt: expert.system_prompt,
         isCustom: expert.is_custom,
+        isPredefined: expert.is_predefined,
         color: expert.color || "#009DDF",
         avatar: expert.avatar,
       }));
 
-      setCustomExperts(transformedData);
+      setExperts(transformedData);
     } catch (error) {
       console.error("Erreur:", error);
     } finally {
@@ -87,8 +81,8 @@ export default function ExpertsPage() {
       expert.expertise.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredCustomExperts = filteredExperts.filter((e) => e.isCustom);
-  const filteredPredefinedExperts = filteredExperts.filter((e) => !e.isCustom);
+  const filteredCustomExperts = filteredExperts.filter((e) => e.isCustom && !e.isPredefined);
+  const filteredPredefinedExperts = filteredExperts.filter((e) => e.isPredefined);
 
   const handleEdit = (expert: Expert) => {
     setEditingExpert({ ...expert });
@@ -104,15 +98,6 @@ export default function ExpertsPage() {
       return;
     }
 
-    // If it's a predefined expert being edited, just update local state (no DB save)
-    if (!editingExpert.isCustom) {
-      alert("Note : Les modifications des experts prédéfinis ne sont pas sauvegardées.");
-      setIsEditDialogOpen(false);
-      setEditingExpert(null);
-      return;
-    }
-
-    // It's a custom expert - save to Supabase
     try {
       setIsSaving(true);
 
@@ -122,7 +107,8 @@ export default function ExpertsPage() {
         expertise: editingExpert.expertise,
         tone: editingExpert.tone,
         system_prompt: editingExpert.systemPrompt,
-        is_custom: true,
+        is_custom: editingExpert.isCustom !== undefined ? editingExpert.isCustom : true,
+        is_predefined: editingExpert.isPredefined || false,
         color: editingExpert.color || "#009DDF",
         avatar: editingExpert.avatar || null,
       };
@@ -143,16 +129,10 @@ export default function ExpertsPage() {
           return;
         }
 
-        // Update with real ID from database
-        if (data) {
-          const newExpert = {
-            ...editingExpert,
-            id: data.id,
-          };
-          setCustomExperts([...customExperts, newExpert]);
-        }
+        // Reload all experts after creation
+        await loadAllExperts();
       } else {
-        // Update existing custom expert
+        // Update existing expert (predefined or custom)
         const { error } = await supabase
           .from("experts")
           .update(supabaseData)
@@ -164,9 +144,8 @@ export default function ExpertsPage() {
           return;
         }
 
-        setCustomExperts(
-          customExperts.map((e) => (e.id === editingExpert.id ? editingExpert : e))
-        );
+        // Reload all experts after update
+        await loadAllExperts();
       }
 
       setIsEditDialogOpen(false);
@@ -194,7 +173,8 @@ export default function ExpertsPage() {
         return;
       }
 
-      setCustomExperts(customExperts.filter((e) => e.id !== expertId));
+      // Reload all experts after deletion
+      await loadAllExperts();
       alert("Expert supprimé avec succès !");
     } catch (error) {
       console.error("Erreur:", error);

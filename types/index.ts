@@ -7,6 +7,7 @@ export interface Expert {
   tone: "formal" | "creative" | "analytical" | "strategic" | "pragmatic";
   systemPrompt: string;
   isCustom: boolean;
+  isPredefined?: boolean;
   avatar?: string;
   color?: string;
 }
