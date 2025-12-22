@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, AlertTriangle, CheckCircle2, HelpCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
 
 interface TimelineProps {
   contributions: Contribution[];
@@ -115,7 +116,7 @@ export function Timeline({ contributions }: TimelineProps) {
                         {/* Content */}
                         <div className="text-sm">
                           {isExpanded ? (
-                            <div className="whitespace-pre-wrap">{contribution.content}</div>
+                            <MarkdownRenderer content={contribution.content} className="text-sm" />
                           ) : (
                             <p className="text-muted-foreground">{preview}</p>
                           )}
