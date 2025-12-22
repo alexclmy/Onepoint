@@ -34,8 +34,10 @@ Un outil de consulting stratégique professionnel propulsé par l'IA, utilisant 
 - 📊 **14 types d'analyses stratégiques** (SWOT, PESTEL, Porter, BCG, etc.)
 - 💬 **Système de débat multi-agents** pour des analyses approfondies
 - 🏢 **Gestion multi-entreprises** avec contexte enrichi
-- 📄 **Génération de rapports PDF** professionnels
-- ⚙️ **Configuration LLM flexible** (modèle, température, tokens)
+- 📄 **Rapports Markdown professionnels** avec mise en forme avancée
+- 🌐 **Recherche web native** intégrée via OpenAI Responses API
+- 🔍 **Mode Debug complet** pour transparence des appels LLM
+- ⚙️ **Configuration LLM flexible** avec support GPT-5 et modèles de raisonnement
 - 🎨 **Interface moderne** avec shadcn/ui
 
 ### Principe de Fonctionnement
@@ -51,16 +53,18 @@ Un outil de consulting stratégique professionnel propulsé par l'IA, utilisant 
 
 ### 🎯 Analyses Stratégiques
 - ✅ 14 types d'analyses professionnelles disponibles
-- ✅ Sélection multi-actions pour rapports combinés
+- ✅ Sélection multi-actions (maximum 3) pour rapports combinés
 - ✅ Templates de sortie structurés
 - ✅ Estimation de durée par analyse
+- ✅ Rapports au format Markdown avec mise en forme professionnelle
 
 ### 👥 Système Multi-Agents Avancé
 - ✅ 24 experts prédéfinis (personnages de fiction)
 - ✅ Création d'experts personnalisés avec system prompts
-- ✅ Sélection multi-experts pour analyses croisées
+- ✅ Sélection multi-experts (maximum 3) pour analyses croisées
 - ✅ Débats itératifs pour convergence vers un consensus
 - ✅ Contributions catégorisées (analyse, débat, consensus, synthèse)
+- ✅ Mode Debug complet avec accès aux prompts, config LLM et recherches web
 
 ### 🏢 Gestion d'Entreprises
 - ✅ CRUD complet connecté à Supabase
@@ -69,11 +73,13 @@ Un outil de consulting stratégique professionnel propulsé par l'IA, utilisant 
 - ✅ Sélection d'entreprise lors des analyses
 
 ### 📊 Résultats et Visualisation
-- ✅ Timeline des contributions en temps réel (SSE streaming)
+- ✅ Timeline des contributions en temps réel (SSE streaming avec buffering)
 - ✅ Affichage des discussions entre experts
-- ✅ Contributions expansibles/collapsables
+- ✅ Contributions expansibles/collapsables avec rendu Markdown
 - ✅ Badges de type de contribution
-- ✅ Rapport final structuré
+- ✅ Rapport final structuré au format Markdown professionnel
+- ✅ Auto-scroll vers les résultats au lancement de l'analyse
+- ✅ Bouton Debug par contribution (prompts, config LLM, recherches web)
 
 ### 📄 Export et Sauvegarde
 - ✅ Génération PDF avec branding Onepoint
@@ -81,7 +87,11 @@ Un outil de consulting stratégique professionnel propulsé par l'IA, utilisant 
 - ✅ Téléchargement des rapports
 
 ### ⚙️ Configuration Flexible
-- ✅ Configuration LLM (provider, model, temperature, max_tokens)
+- ✅ Configuration LLM (provider, model, temperature, max_output_tokens)
+- ✅ Support des modèles GPT-5 (GPT-5.2, GPT-5.1, GPT-5, GPT-5-mini)
+- ✅ Support des modèles de raisonnement (o3, o4-mini) et modèles de code
+- ✅ Recherche web native via OpenAI Responses API (optionnelle)
+- ✅ Gestion automatique des paramètres selon le modèle (temperature pour modèles non-reasoning)
 - ✅ Sauvegarde des configs en base Supabase
 - ✅ Interface de gestion des experts custom
 - ✅ Interface de gestion des entreprises
@@ -90,9 +100,33 @@ Un outil de consulting stratégique professionnel propulsé par l'IA, utilisant 
 
 ## 🤖 Système Multi-Agents
 
+Le cœur de l'application est un **système d'orchestration multi-agents** qui simule des discussions d'experts pour produire des analyses de haute qualité, propulsé par la dernière **OpenAI Responses API** (Mars 2025) avec recherche web native.
+
+### 🆕 OpenAI Responses API (Mars 2025)
+
+L'application utilise la **nouvelle Responses API** d'OpenAI qui remplace l'ancienne Chat Completions API :
+
+**Avantages** :
+- ✅ **Recherche web native** : Aucun outil externe (Tavily) nécessaire
+- ✅ **Citations automatiques** : Sources web extraites et référencées
+- ✅ **Meilleure performance** : 3-5% d'amélioration sur les benchmarks
+- ✅ **Réduction des coûts** : 40-80% moins cher que Chat Completions
+- ✅ **Filtrage de domaines** : Contrôle des sources web (allowed_domains)
+- ✅ **Support des modèles de raisonnement** : o3, o4-mini pour math/science/coding
+
+**Implémentation** :
+- Client Responses API : `/lib/openai/responses-client.ts`
+- Agent utilisant Responses API : `/lib/agents/responses-agent.ts`
+- Orchestrateur hybride : `/lib/agents/hybrid-orchestrator.ts`
+
+**Gestion intelligente des paramètres** :
+- Les modèles GPT-5 et o-series (raisonnement) ne supportent **pas** le paramètre `temperature`
+- Le système détecte automatiquement le type de modèle et ajuste les paramètres
+- Utilisation de `max_output_tokens` (nouveau standard) au lieu de `max_tokens`
+
 ### Architecture d'Orchestration
 
-Le cœur de l'application est un **système d'orchestration multi-agents** qui simule des discussions d'experts pour produire des analyses de haute qualité.
+Le système d'orchestration utilise un **Hybrid Orchestrator** qui combine la Responses API avec un workflow multi-phases personnalisé.
 
 #### Pourquoi Plusieurs Contributions avec 1 Seul Expert ?
 
@@ -372,17 +406,20 @@ Chaque analyse dispose d'un **template de sortie structuré** qui guide les expe
 - **Icons** : Lucide React
 - **State Management** : Zustand 5
 - **Date Utilities** : date-fns 4
+- **Markdown Rendering** : react-markdown + remark-gfm
 
 ### Backend
 - **Runtime** : Node.js (Next.js API Routes)
 - **Database** : Supabase (PostgreSQL)
-- **AI** : OpenAI GPT-4 (API v6.8)
+- **AI** : OpenAI Responses API (Mars 2025)
+  - Modèles supportés : GPT-5.2, GPT-5.1, GPT-5, GPT-5-mini, o3, o4-mini, GPT-5-codex, et plus
+  - Recherche web native intégrée
 - **PDF Generation** : jsPDF + jspdf-autotable
 
 ### Déploiement
 - **Hosting** : Vercel
 - **Database** : Supabase Cloud
-- **Streaming** : Server-Sent Events (SSE)
+- **Streaming** : Server-Sent Events (SSE) avec buffering
 
 ---
 
@@ -429,25 +466,31 @@ onepoint-ai-consulting/
 │   ├── layout/
 │   │   └── sidebar.tsx               # Navigation latérale
 │   ├── analysis/
-│   │   ├── action-selector.tsx       # Sélecteur d'actions
-│   │   ├── expert-selector.tsx       # Sélecteur d'experts (avec custom)
+│   │   ├── action-selector.tsx       # Sélecteur d'actions (max 3)
+│   │   ├── expert-selector.tsx       # Sélecteur d'experts (max 3, avec custom)
 │   │   ├── company-selector.tsx      # Sélecteur d'entreprise
 │   │   ├── analysis-input.tsx        # Zone de saisie contexte
-│   │   └── timeline.tsx              # Timeline des contributions
+│   │   ├── timeline.tsx              # Timeline avec Debug dialog
+│   │   └── swot-matrix.tsx           # Matrice SWOT structurée (optionnel)
+│   ├── markdown/
+│   │   └── markdown-renderer.tsx     # 🆕 Rendu Markdown professionnel
 │   └── actions/
 │       ├── action-page-template.tsx  # Template réutilisable pour pages actions
 │       └── analysis-results.tsx      # Affichage résultats avec timeline + rapport
 │
 ├── lib/
 │   ├── agents/
-│   │   ├── orchestrator.ts           # 🎯 Orchestrateur multi-agents (CŒUR)
+│   │   ├── hybrid-orchestrator.ts    # 🎯 Orchestrateur hybride (CŒUR)
+│   │   ├── responses-agent.ts        # 🆕 Agent utilisant Responses API
+│   │   ├── orchestrator.ts           # [BACKUP] Ancien orchestrateur
 │   │   └── agent-base.ts             # Classe Agent individuel
 │   ├── actions/
 │   │   └── action-definitions.ts     # Définitions des 14 analyses
 │   ├── experts/
 │   │   └── predefined-experts.ts     # 24 experts prédéfinis
 │   ├── openai/
-│   │   └── client.ts                 # Client OpenAI configuré
+│   │   ├── responses-client.ts       # 🆕 Client Responses API avec web search
+│   │   └── client.ts                 # Client OpenAI Chat Completions
 │   ├── pdf/
 │   │   └── generator.ts              # Générateur de PDF
 │   └── supabase/
@@ -466,18 +509,50 @@ onepoint-ai-consulting/
 
 ### Fichiers Clés
 
-#### `/lib/agents/orchestrator.ts`
-Cœur du système multi-agents. Gère :
+#### `/lib/agents/hybrid-orchestrator.ts`
+**Nouveau cœur du système multi-agents** utilisant Responses API. Gère :
 - Initialisation des agents selon experts sélectionnés
 - Exécution des 4 phases (analyse initiale, débats, synthèse action, synthèse finale)
-- Streaming des contributions en temps réel
+- Streaming des contributions en temps réel via SSE
+- Intégration de la recherche web native
+- Génération de prompts optimisés pour Markdown
+- Logging complet pour mode Debug (prompts, config, recherches web)
 - Gestion du contexte entre phases
 
-#### `/lib/agents/agent-base.ts`
-Classe représentant un expert individuel. Méthodes :
-- `generate(prompt, context)` : Génère une réponse via OpenAI
+#### `/lib/agents/responses-agent.ts`
+Classe Agent utilisant la nouvelle Responses API. Fonctionnalités :
+- `generate(prompt, context)` : Génère une réponse via Responses API
 - `react(previousContributions)` : Réagit aux contributions précédentes
+- Support optionnel de la recherche web
+- Gestion automatique des paramètres selon le modèle (temperature, max_output_tokens)
+- Extraction des citations web
 - Historique de conversation maintenu pour cohérence
+
+#### `/lib/openai/responses-client.ts`
+Client pour OpenAI Responses API. Fonctionnalités clés :
+- `createResponse()` : Appel de base à l'API Responses
+- `createResponseWithWebSearch()` : Appel avec recherche web native activée
+- `isReasoningModel()` : Détection des modèles de raisonnement (GPT-5, o-series)
+- Gestion conditionnelle du paramètre `temperature`
+- Extraction automatique des citations web
+- Support du filtrage par domaines (allowed_domains)
+
+#### `/components/markdown/markdown-renderer.tsx`
+Composant de rendu Markdown professionnel :
+- Utilise react-markdown + remark-gfm
+- Styles améliorés pour headers, tableaux, listes, citations
+- Support du mode sombre
+- Mise en forme professionnelle des rapports d'analyse
+- Optimisé pour la lisibilité (typographie, spacing, couleurs)
+
+#### `/components/analysis/timeline.tsx`
+Timeline des contributions avec fonctionnalités avancées :
+- Affichage en temps réel des contributions SSE
+- Bouton Debug par contribution avec Dialog complet
+- Rendu Markdown des contenus
+- Badges de type (analysis, debate, consensus, summary)
+- Expand/collapse pour chaque contribution
+- Indicateur du nombre de recherches web effectuées
 
 #### `/components/actions/action-page-template.tsx`
 Template réutilisable pour les 14 pages d'action. Gère :
@@ -494,11 +569,23 @@ Affichage complet des résultats :
 - Section rapport final
 
 #### `/app/api/analyze/route.ts`
-API route qui :
+API route principale pour les analyses :
 - Charge les experts custom depuis Supabase
-- Initialise l'orchestrateur avec config LLM
-- Stream les contributions via SSE
+- Charge la configuration LLM depuis Supabase
+- Initialise le HybridOrchestrator avec Responses API
+- Stream les contributions via SSE avec format structuré
+- Envoie les données de debug (prompts, config, recherches web)
+- Gestion des erreurs avec logging détaillé
 - Retourne le résultat final
+
+#### `/app/page.tsx`
+Page d'accueil pour créer de nouvelles analyses :
+- Sélection d'actions (max 3) et experts (max 3)
+- Sélection optionnelle d'entreprise
+- Auto-scroll vers résultats au lancement
+- **SSE streaming avec buffering** pour éviter les erreurs de parsing
+- Affichage en temps réel de la Timeline
+- Gestion robuste des chunks SSE partiels
 
 ---
 
@@ -561,11 +648,23 @@ L'application sera accessible sur [http://localhost:3000](http://localhost:3000)
 
 Accédez à `/config` pour configurer :
 - **Provider** : openai, anthropic (à venir), custom
-- **Model** : gpt-4-turbo-preview, gpt-4, gpt-3.5-turbo, etc.
-- **Temperature** : 0-1 (0.7 recommandé pour équilibre créativité/cohérence)
-- **Max Tokens** : 1000-8000 (4000 recommandé)
+- **Model** : Dropdown complet avec tous les modèles OpenAI officiels
+  - **GPT-5 Series** : GPT-5.2 (recommandé), GPT-5.1, GPT-5, GPT-5-mini
+  - **Coding Models** : GPT-5.1-codex-max, GPT-5-codex
+  - **Reasoning Models** : o3, o4-mini (pour math/science/coding)
+  - **GPT-4.1 Series** : GPT-4.1, GPT-4.1-mini
+  - **GPT-4o Series** : GPT-4o, GPT-4o-mini
+  - **Legacy** : GPT-4-turbo, GPT-4, GPT-3.5-turbo
+- **Temperature** : 0-1 (0.7 recommandé, non applicable aux modèles de raisonnement)
+- **Max Output Tokens** : 1000-8000 (4000 recommandé)
+- **Web Search** : Activer/désactiver la recherche web native
 
 Les configurations sont **sauvegardées en base Supabase** et appliquées à toutes les analyses.
+
+**Notes importantes** :
+- Les modèles GPT-5 et o-series ne supportent pas le paramètre `temperature`
+- Le système ajuste automatiquement les paramètres selon le modèle sélectionné
+- La recherche web utilise la Responses API native (pas d'API externe nécessaire)
 
 ### Gestion des Entreprises
 
@@ -592,6 +691,32 @@ Accédez à `/experts` pour :
 - Supprimer vos experts custom
 
 Les experts custom apparaissent dans le sélecteur d'experts de toutes les pages d'action.
+
+### Mode Debug
+
+Chaque contribution d'agent dispose d'un **bouton Debug** qui ouvre une dialog avec des informations techniques complètes :
+
+**Informations affichées** :
+- 📝 **Prompt complet** envoyé au modèle LLM
+- ⚙️ **Configuration LLM** utilisée (model, temperature, max_output_tokens)
+- 🌐 **Recherches web** effectuées avec :
+  - Query de recherche
+  - Snippets de résultats
+  - URLs des sources
+  - Domaines autorisés (si configuré)
+- 🤖 **Nom de l'agent** et son rôle
+- 📊 **Type de contribution** (analysis, debate, consensus, summary)
+
+**Accès au Debug** :
+- Pendant l'analyse en cours : Bouton Debug dans chaque carte de contribution
+- Dans l'historique : Bouton Debug également disponible pour toutes les analyses passées
+- Badge indicateur du nombre de recherches web (pastille verte)
+
+Cette fonctionnalité assure une **transparence totale** sur le fonctionnement des LLM et permet de :
+- Vérifier que la configuration est correctement appliquée
+- Comprendre le raisonnement de chaque agent
+- Auditer les sources utilisées pour les analyses
+- Débugger et optimiser les prompts
 
 ---
 
@@ -856,18 +981,35 @@ Tous les composants proviennent de **shadcn/ui** :
 
 ## 📅 Roadmap
 
-### ✅ Fonctionnalités Implémentées
+### ✅ Fonctionnalités Implémentées (v2.0)
 
-- [x] 24 experts prédéfinis avec personnalités
+**Core Features** :
+- [x] 24 experts prédéfinis avec personnalités + experts personnalisés
 - [x] 14 analyses stratégiques complètes
-- [x] Système multi-agents avec débats itératifs
-- [x] Streaming temps réel (SSE)
+- [x] Système multi-agents avec débats itératifs (Hybrid Orchestrator)
+- [x] OpenAI Responses API avec recherche web native
+- [x] Support GPT-5, o-series, et modèles de code
+- [x] Streaming temps réel SSE avec buffering robuste
+- [x] Rapports Markdown professionnels (react-markdown + remark-gfm)
+- [x] Mode Debug complet (prompts, config, recherches web)
+
+**Data Management** :
 - [x] Gestion d'entreprises (CRUD Supabase)
 - [x] Gestion d'experts custom (CRUD Supabase)
-- [x] Configuration LLM flexible (Supabase)
-- [x] Génération PDF basique
+- [x] Configuration LLM flexible (20+ modèles OpenAI)
+- [x] Sélection limitée (max 3 experts, max 3 analyses)
+
+**UI/UX** :
 - [x] Interface moderne avec shadcn/ui
+- [x] Auto-scroll vers résultats
+- [x] Timeline avec expand/collapse et badges
+- [x] Bouton Debug par contribution
+- [x] Indicateurs de recherches web
+- [x] Génération PDF basique
+
+**Déploiement** :
 - [x] Déploiement Vercel
+- [x] Bundle optimisé (-36% vs version Mermaid)
 
 ### 🚧 En Cours / À Venir
 
@@ -898,6 +1040,53 @@ Tous les composants proviennent de **shadcn/ui** :
 - [ ] **Visualisations interactives** : Graphiques, matrices dynamiques
 - [ ] **Benchmarking automatique** via web scraping
 - [ ] **Veille concurrentielle automatique** : Alertes sur mouvements marché
+
+---
+
+## 🆕 Nouveautés (Décembre 2024)
+
+### Version 2.0 - OpenAI Responses API & Markdown
+
+**Migration vers Responses API** :
+- ✅ Implémentation complète de la nouvelle OpenAI Responses API (Mars 2025)
+- ✅ Recherche web native intégrée (remplacement de Tavily)
+- ✅ Réduction des coûts de 40-80% par rapport à Chat Completions
+- ✅ Support des nouveaux modèles GPT-5 (5.2, 5.1, 5, mini)
+- ✅ Support des modèles de raisonnement (o3, o4-mini)
+- ✅ Gestion intelligente des paramètres selon type de modèle
+
+**Amélioration de la Présentation** :
+- ✅ Rapports au format Markdown professionnel
+- ✅ Rendu avec react-markdown + remark-gfm
+- ✅ Mise en forme avancée (headers, tableaux, listes, citations, code blocks)
+- ✅ Optimisation typographique et espacement
+- ✅ Réduction du bundle de 36% (retrait de Mermaid)
+
+**Mode Debug Complet** :
+- ✅ Bouton Debug sur chaque contribution
+- ✅ Affichage du prompt complet envoyé au LLM
+- ✅ Configuration LLM utilisée (model, temperature, tokens)
+- ✅ Détails des recherches web (queries, sources, citations)
+- ✅ Disponible en temps réel et dans l'historique
+
+**Améliorations UX** :
+- ✅ Limite de sélection : maximum 3 experts et 3 analyses
+- ✅ Auto-scroll vers résultats au lancement d'analyse
+- ✅ SSE streaming avec buffering robuste (fix Timeline disparition)
+- ✅ Indicateur visuel du nombre de recherches web par contribution
+- ✅ Loader immédiat au démarrage de l'analyse
+
+**Configuration LLM** :
+- ✅ Dropdown avec 20+ modèles OpenAI officiels organisés par série
+- ✅ Option recherche web native activable/désactivable
+- ✅ Paramètre `max_output_tokens` (nouveau standard)
+- ✅ Détection automatique des modèles ne supportant pas temperature
+
+**Corrections de Bugs** :
+- ✅ Fix erreur "Unknown parameter: 'max_tokens'" → Migration vers `max_output_tokens`
+- ✅ Fix erreur "Unsupported parameter: 'temperature'" → Détection des modèles de raisonnement
+- ✅ Fix Timeline disparaissant pendant l'analyse → Buffering SSE amélioré
+- ✅ Fix bouton Debug manquant dans historique → Ajout dans Timeline component
 
 ---
 
