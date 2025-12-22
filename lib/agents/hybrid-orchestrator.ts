@@ -7,14 +7,13 @@
 import { ResponsesAgent } from "./responses-agent";
 import { Expert, ActionType, Contribution, UserQuestion, ContributionDebugInfo } from "@/types";
 import { ACTIONS } from "@/lib/actions/action-definitions";
-import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
 
 export interface HybridOrchestrationConfig {
   userInput: string;
   selectedActions: ActionType[];
   selectedExperts: string[]; // Expert IDs
   userInvolved: boolean;
-  allExperts?: Expert[]; // Optional: provide all experts (predefined + custom)
+  allExperts: Expert[]; // Required: provide all experts (predefined + custom) from database
   onContribution?: (contribution: Contribution) => void;
   onQuestion?: (question: UserQuestion) => Promise<string | null>;
   model?: string;
@@ -44,10 +43,8 @@ export class HybridOrchestrator {
   }
 
   private initializeAgents(): void {
-    // Use provided experts or default to predefined experts
-    const expertPool = this.config.allExperts || PREDEFINED_EXPERTS;
-
-    const experts = expertPool.filter((e) =>
+    // Filter selected experts from the provided expert pool
+    const experts = this.config.allExperts.filter((e) =>
       this.config.selectedExperts.includes(e.id)
     );
 

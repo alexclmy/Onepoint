@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { ActionType, Contribution, UserQuestion, Expert } from "@/types";
 import { HybridOrchestrator } from "@/lib/agents/hybrid-orchestrator";
 import { supabase } from "@/lib/supabase/client";
-import { PREDEFINED_EXPERTS } from "@/lib/experts/predefined-experts";
 import {
   createAnalysis,
   completeAnalysis,
@@ -81,31 +80,35 @@ export async function POST(request: NextRequest) {
       return new Response("Failed to create analysis", { status: 500 });
     }
 
-    // Load custom experts from Supabase
-    let allExperts = [...PREDEFINED_EXPERTS];
+    // Load all experts from Supabase
+    let allExperts: Expert[] = [];
     try {
-      const { data: customExpertsData } = await supabase
+      const { data: expertsData, error: expertsError } = await supabase
         .from("experts")
         .select("*")
-        .eq("is_custom", true);
+        .order("is_predefined", { ascending: false })
+        .order("created_at", { ascending: false });
 
-      if (customExpertsData && customExpertsData.length > 0) {
-        const customExperts: Expert[] = customExpertsData.map((expert) => ({
-          id: expert.id,
-          name: expert.name,
-          role: expert.role,
-          expertise: expert.expertise,
-          tone: expert.tone as Expert["tone"],
-          systemPrompt: expert.system_prompt,
-          isCustom: expert.is_custom,
-          color: expert.color || "#009DDF",
-          avatar: expert.avatar,
-        }));
-        allExperts = [...PREDEFINED_EXPERTS, ...customExperts];
+      if (expertsError) {
+        console.error("Error loading experts:", expertsError);
+        return new Response("Failed to load experts", { status: 500 });
       }
+
+      allExperts = (expertsData || []).map((expert) => ({
+        id: expert.id,
+        name: expert.name,
+        role: expert.role,
+        expertise: expert.expertise,
+        tone: expert.tone as Expert["tone"],
+        systemPrompt: expert.system_prompt,
+        isCustom: expert.is_custom,
+        isPredefined: expert.is_predefined,
+        color: expert.color || "#009DDF",
+        avatar: expert.avatar,
+      }));
     } catch (error) {
-      console.error("Error loading custom experts:", error);
-      // Continue with predefined experts only
+      console.error("Error loading experts:", error);
+      return new Response("Failed to load experts", { status: 500 });
     }
 
     // Create a ReadableStream for SSE
