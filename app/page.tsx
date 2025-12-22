@@ -248,7 +248,7 @@ export default function HomePage() {
         </div>
 
         {/* Timeline Section */}
-        {timeline.length > 0 && (
+        {(timeline.length > 0 || isAnalyzing) && (
           <div className="space-y-4" ref={resultsRef}>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Timeline des Contributions</h2>
@@ -259,7 +259,17 @@ export default function HomePage() {
                 </Button>
               )}
             </div>
-            <Timeline contributions={timeline} />
+            {timeline.length > 0 ? (
+              <Timeline contributions={timeline} />
+            ) : isAnalyzing ? (
+              <div className="flex flex-col items-center justify-center py-12 rounded-lg border border-dashed">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <p className="mt-4 text-lg font-medium">Analyse en cours...</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Les experts préparent leur analyse, veuillez patienter
+                </p>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
