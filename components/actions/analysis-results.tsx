@@ -22,6 +22,7 @@ import {
   Info
 } from "lucide-react";
 import { Contribution } from "@/types";
+import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
 
 interface AnalysisResultsProps {
   isAnalyzing: boolean;
@@ -262,10 +263,8 @@ export function AnalysisResults({ isAnalyzing, events }: AnalysisResultsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap rounded-lg bg-muted p-4">
-                {finalOutput}
-              </div>
+            <div className="rounded-lg bg-muted/30 p-6">
+              <MarkdownRenderer content={finalOutput} />
             </div>
           </CardContent>
         </Card>
