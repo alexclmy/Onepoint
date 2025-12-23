@@ -22,6 +22,21 @@ const STRUCTURED_OUTPUT_MODELS = [
   "gpt-4o-mini",
 ];
 
+/**
+ * Check if a model is a reasoning model that doesn't support temperature
+ * GPT-5 and o-series models don't support temperature, top_p, presence_penalty, etc.
+ */
+function isReasoningModel(model: string): boolean {
+  const lowerModel = model.toLowerCase();
+  return (
+    lowerModel.startsWith("gpt-5") ||
+    lowerModel.startsWith("o3") ||
+    lowerModel.startsWith("o4") ||
+    lowerModel.startsWith("o1") ||
+    lowerModel.includes("reasoning")
+  );
+}
+
 function supportsStructuredOutput(model: string): boolean {
   return STRUCTURED_OUTPUT_MODELS.some(supportedModel =>
     model.toLowerCase().includes(supportedModel.toLowerCase())
@@ -50,6 +65,14 @@ export async function POST(request: NextRequest) {
     // Use user config or fallback to GPT-4o (supports structured output)
     const model = llmConfig?.model || "gpt-4o";
     const useStructuredOutput = supportsStructuredOutput(model);
+    const isReasoning = isReasoningModel(model);
+
+    console.log("🔍 [ONEVEILLE] Analyzing query with:", {
+      model,
+      isReasoningModel: isReasoning,
+      supportsStructuredOutput: useStructuredOutput,
+      temperatureSupported: !isReasoning,
+    });
 
     const systemPrompt = `Tu es un assistant expert en veille stratégique.
 
@@ -87,8 +110,13 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
     const completionOptions: OpenAI.Chat.ChatCompletionCreateParams = {
       model,
       messages,
-      temperature: 0.7,
     };
+
+    // Only include temperature for non-reasoning models
+    // GPT-5 and o-series models don't support temperature
+    if (!isReasoning) {
+      completionOptions.temperature = 0.7;
+    }
 
     // Add response_format only for models that support it
     if (useStructuredOutput) {
@@ -124,6 +152,8 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
     ) {
       throw new Error("Invalid response structure from OpenAI");
     }
+
+    console.log("✅ [ONEVEILLE] Analysis completed successfully");
 
     return NextResponse.json({
       parameters: {
