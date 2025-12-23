@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Company, ActionType } from "@/types";
 import { CompanySelector } from "@/components/analysis/company-selector";
 import { ExpertSelector } from "@/components/analysis/expert-selector";
@@ -37,10 +37,18 @@ export function ActionPageTemplate({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
   const [analysisStarted, setAnalysisStarted] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadCompanies();
   }, []);
+
+  // Auto-scroll vers les résultats quand l'analyse démarre
+  useEffect(() => {
+    if (analysisStarted && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [analysisStarted]);
 
   const loadCompanies = async () => {
     try {
@@ -238,7 +246,7 @@ export function ActionPageTemplate({
 
       {/* Analysis Results */}
       {analysisStarted && (
-        <div className="mt-8">
+        <div ref={resultsRef} className="mt-8">
           <AnalysisResults isAnalyzing={isAnalyzing} events={timelineEvents} />
         </div>
       )}
