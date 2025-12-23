@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { supabase } from "@/lib/supabase/client";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -7,6 +8,25 @@ const openai = new OpenAI({
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Models that support structured outputs
+const STRUCTURED_OUTPUT_MODELS = [
+  "gpt-4-turbo-preview",
+  "gpt-4-1106-preview",
+  "gpt-4-0125-preview",
+  "gpt-5",
+  "gpt-5.1",
+  "gpt-5.2",
+  "gpt-5-mini",
+  "gpt-4o",
+  "gpt-4o-mini",
+];
+
+function supportsStructuredOutput(model: string): boolean {
+  return STRUCTURED_OUTPUT_MODELS.some(supportedModel =>
+    model.toLowerCase().includes(supportedModel.toLowerCase())
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,13 +39,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call OpenAI to analyze the query and suggest parameters
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `Tu es un assistant expert en veille stratégique.
+    // Load LLM configuration from Supabase
+    const { data: llmConfig, error: configError } = await supabase
+      .from("llm_configs")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Use user config or fallback to GPT-4o (supports structured output)
+    const model = llmConfig?.model || "gpt-4o";
+    const useStructuredOutput = supportsStructuredOutput(model);
+
+    const systemPrompt = `Tu es un assistant expert en veille stratégique.
 
 Ta tâche est d'analyser une demande de veille et de suggérer :
 1. Les paramètres optimaux sur 3 axes (valeurs de 0 à 100) :
@@ -35,7 +61,7 @@ Ta tâche est d'analyser une demande de veille et de suggérer :
 
 2. Une liste de 8-12 mots-clés pertinents pour enrichir la recherche
 
-Réponds UNIQUEMENT avec un JSON valide au format :
+${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 'Réponds au format JSON suivant (commence ta réponse par { et termine par }) :'}
 {
   "parameters": {
     "geography": <nombre 0-100>,
@@ -44,23 +70,49 @@ Réponds UNIQUEMENT avec un JSON valide au format :
   },
   "keywords": ["mot-clé 1", "mot-clé 2", ...],
   "reasoning": "Explication brève de tes choix"
-}`,
-        },
-        {
-          role: "user",
-          content: `Analyse cette demande de veille et suggère les paramètres optimaux :\n\n"${query}"`,
-        },
-      ],
+}`;
+
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `Analyse cette demande de veille et suggère les paramètres optimaux :\n\n"${query}"`,
+      },
+    ];
+
+    // Build completion options
+    const completionOptions: OpenAI.Chat.ChatCompletionCreateParams = {
+      model,
+      messages,
       temperature: 0.7,
-      response_format: { type: "json_object" },
-    });
+    };
+
+    // Add response_format only for models that support it
+    if (useStructuredOutput) {
+      completionOptions.response_format = { type: "json_object" };
+    }
+
+    const completion = await openai.chat.completions.create(completionOptions);
 
     const result = completion.choices[0].message.content;
     if (!result) {
       throw new Error("No response from OpenAI");
     }
 
-    const analysis = JSON.parse(result);
+    // Parse JSON response
+    let analysis;
+    try {
+      // Try to extract JSON if the model didn't use structured output
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[0] : result;
+      analysis = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error("Failed to parse JSON:", result);
+      throw new Error("Invalid JSON response from OpenAI");
+    }
 
     // Validate the response structure
     if (
