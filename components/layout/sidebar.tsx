@@ -15,6 +15,7 @@ import {
   Building2,
   TrendingUp,
   Package,
+  Radar,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -36,6 +37,11 @@ const mainNavigation: NavItem[] = [
     name: "Nouvelle Analyse",
     href: "/",
     icon: Home,
+  },
+  {
+    name: "OneVeille",
+    href: "/oneveille",
+    icon: Radar,
   },
 ];
 
