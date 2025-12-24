@@ -1,26 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase/client";
+import { getAllVeilles, deleteVeille } from "@/lib/supabase/veilles";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/veilles
+ * Get all veilles
+ */
 export async function GET(request: NextRequest) {
   try {
-    const { data: veilles, error } = await supabase
-      .from("veille_history")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { veilles, error } = await getAllVeilles();
 
     if (error) {
-      console.error("Error fetching veilles:", error);
+      console.error("Error in GET /api/veilles:", error);
       return NextResponse.json(
         { error: "Failed to fetch veilles" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ veilles: veilles || [] });
+    return NextResponse.json({ veilles });
   } catch (error) {
-    console.error("Error in GET /api/veilles:", error);
+    console.error("Unexpected error in GET /api/veilles:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -28,6 +30,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * DELETE /api/veilles?id=xxx
+ * Delete a veille by ID
+ */
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -40,22 +46,19 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabase
-      .from("veille_history")
-      .delete()
-      .eq("id", id);
+    const { success, error } = await deleteVeille(id);
 
-    if (error) {
-      console.error("Error deleting veille:", error);
+    if (!success || error) {
+      console.error("Error in DELETE /api/veilles:", error);
       return NextResponse.json(
-        { error: "Failed to delete veille" },
+        { error: error || "Failed to delete veille" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error in DELETE /api/veilles:", error);
+    console.error("Unexpected error in DELETE /api/veilles:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

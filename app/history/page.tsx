@@ -44,30 +44,42 @@ export default function HistoryPage() {
         fetch("/api/veilles"),
       ]);
 
-      if (!analysesResponse.ok || !veillesResponse.ok) {
-        throw new Error("Failed to fetch reports");
+      // Always load analyses if successful
+      if (!analysesResponse.ok) {
+        throw new Error("Failed to fetch analyses");
       }
 
       const analysesData = await analysesResponse.json();
-      const veillesData = await veillesResponse.json();
-
       const analyses: Analysis[] = analysesData.analyses || [];
-      const veillesRaw = veillesData.veilles || [];
 
-      // Transform raw veilles from database to VeilleHistory type
-      const veilles: VeilleHistory[] = veillesRaw.map((v: any) => ({
-        id: v.id,
-        query: v.query,
-        parameters: v.parameters,
-        keywords: v.keywords,
-        companyId: v.company_id,
-        subQueries: v.sub_queries,
-        results: v.results,
-        finalReport: v.final_report,
-        modelUsed: v.model_used,
-        createdAt: new Date(v.created_at),
-        updatedAt: new Date(v.updated_at),
-      }));
+      // Try to load veilles, but don't fail if it doesn't work (table may not exist yet)
+      let veilles: VeilleHistory[] = [];
+      if (veillesResponse.ok) {
+        try {
+          const veillesData = await veillesResponse.json();
+          const veillesRaw = veillesData.veilles || [];
+
+          // Transform raw veilles from database to VeilleHistory type
+          veilles = veillesRaw.map((v: any) => ({
+            id: v.id,
+            query: v.query,
+            parameters: v.parameters,
+            keywords: v.keywords,
+            companyId: v.company_id,
+            subQueries: v.sub_queries,
+            results: v.results,
+            finalReport: v.final_report,
+            modelUsed: v.model_used,
+            createdAt: new Date(v.created_at),
+            updatedAt: new Date(v.updated_at),
+          }));
+        } catch (veilleError) {
+          console.error("Error loading veilles (non-blocking):", veilleError);
+          // Continue without veilles
+        }
+      } else {
+        console.warn("Veilles API failed (table may not exist yet), continuing with analyses only");
+      }
 
       // Transform to unified Report type
       const allReports: Report[] = [
