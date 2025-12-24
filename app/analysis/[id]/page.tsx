@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Analysis } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,13 +22,7 @@ export default function AnalysisViewPage() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (analysisId) {
-      loadAnalysis();
-    }
-  }, [analysisId]);
-
-  const loadAnalysis = async () => {
+  const loadAnalysis = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await fetch(`/api/analyses/${analysisId}`);
@@ -49,7 +43,13 @@ export default function AnalysisViewPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [analysisId, toast]);
+
+  useEffect(() => {
+    if (analysisId) {
+      loadAnalysis();
+    }
+  }, [analysisId, loadAnalysis]);
 
   const handleDownloadPDF = async () => {
     if (!analysis) return;

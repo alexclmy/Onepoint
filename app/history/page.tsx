@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,12 +34,7 @@ export default function HistoryPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Load all reports on mount
-  useEffect(() => {
-    loadReports();
-  }, []);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -57,23 +52,27 @@ export default function HistoryPage() {
       const veillesData = await veillesResponse.json();
 
       const analyses: Analysis[] = analysesData.analyses || [];
-      const veilles: VeilleHistory[] = veillesData.veilles || [];
+      const veillesRaw = veillesData.veilles || [];
+
+      // Transform raw veilles from database to VeilleHistory type
+      const veilles: VeilleHistory[] = veillesRaw.map((v: any) => ({
+        id: v.id,
+        query: v.query,
+        parameters: v.parameters,
+        keywords: v.keywords,
+        companyId: v.company_id,
+        subQueries: v.sub_queries,
+        results: v.results,
+        finalReport: v.final_report,
+        modelUsed: v.model_used,
+        createdAt: new Date(v.created_at),
+        updatedAt: new Date(v.updated_at),
+      }));
 
       // Transform to unified Report type
       const allReports: Report[] = [
         ...analyses.map((a) => ({ type: "analysis" as const, data: a })),
-        ...veilles.map((v) => ({
-          type: "veille" as const,
-          data: {
-            ...v,
-            createdAt: new Date(v.created_at as any),
-            updatedAt: new Date(v.updated_at as any),
-            companyId: v.company_id,
-            subQueries: v.sub_queries,
-            finalReport: v.final_report,
-            modelUsed: v.model_used,
-          } as VeilleHistory,
-        })),
+        ...veilles.map((v) => ({ type: "veille" as const, data: v })),
       ];
 
       // Sort by date (most recent first)
@@ -112,7 +111,12 @@ export default function HistoryPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  // Load all reports on mount
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
 
   const handleDelete = async (report: Report) => {
     const itemType = report.type === "analysis" ? "analyse" : "veille";
