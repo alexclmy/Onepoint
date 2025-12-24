@@ -144,3 +144,27 @@ export interface Company {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Veille Types
+export interface VeilleHistory {
+  id: string;
+  query: string;
+  parameters: {
+    geography: number;
+    temporality: number;
+    focus: number;
+  };
+  keywords: string[];
+  companyId?: string;
+  subQueries: string[];
+  results: any[];
+  finalReport: string;
+  modelUsed: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Unified Report Type (for History page)
+export type Report =
+  | { type: "analysis"; data: Analysis }
+  | { type: "veille"; data: VeilleHistory };
