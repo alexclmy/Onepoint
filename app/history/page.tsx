@@ -57,7 +57,15 @@ export default function HistoryPage() {
 
       const analysesData = await analysesResponse.json();
       console.log("[HISTORY] Analyses data:", analysesData);
-      const analyses: Analysis[] = analysesData.analyses || [];
+
+      // Transform analyses dates from string to Date objects
+      const analysesRaw = analysesData.analyses || [];
+      const analyses: Analysis[] = analysesRaw.map((a: any) => ({
+        ...a,
+        createdAt: new Date(a.createdAt),
+        updatedAt: new Date(a.updatedAt),
+      }));
+
       console.log("[HISTORY] Loaded analyses count:", analyses.length);
 
       // Try to load veilles, but don't fail if it doesn't work (table may not exist yet)
