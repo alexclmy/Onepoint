@@ -74,6 +74,21 @@ CREATE TABLE IF NOT EXISTS company (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Veille History table
+CREATE TABLE IF NOT EXISTS veille_history (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  query TEXT NOT NULL,
+  parameters JSONB NOT NULL,
+  keywords JSONB NOT NULL,
+  company_id UUID REFERENCES company(id) ON DELETE SET NULL,
+  sub_queries JSONB NOT NULL,
+  results JSONB NOT NULL,
+  final_report TEXT NOT NULL,
+  model_used TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Insert default LLM config
 INSERT INTO llm_configs (provider, model, temperature, max_tokens)
 VALUES ('openai', 'gpt-4-turbo-preview', 0.7, 4000)
@@ -83,6 +98,8 @@ ON CONFLICT DO NOTHING;
 CREATE INDEX IF NOT EXISTS idx_analyses_created_at ON analyses(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_experts_is_custom ON experts(is_custom);
 CREATE INDEX IF NOT EXISTS idx_user_questions_analysis_id ON user_questions(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_veille_history_created_at ON veille_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_veille_history_company_id ON veille_history(company_id);
 
 -- Insert predefined experts
 INSERT INTO experts (id, name, role, expertise, tone, system_prompt, is_custom, is_predefined, color) VALUES
