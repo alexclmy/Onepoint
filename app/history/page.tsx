@@ -38,47 +38,62 @@ export default function HistoryPage() {
     try {
       setIsLoading(true);
 
+      console.log("[HISTORY] Starting to load reports...");
+
       // Load analyses and veilles in parallel
       const [analysesResponse, veillesResponse] = await Promise.all([
         fetch("/api/analyses?stats=true"),
         fetch("/api/veilles"),
       ]);
 
+      console.log("[HISTORY] Analyses response status:", analysesResponse.status);
+      console.log("[HISTORY] Veilles response status:", veillesResponse.status);
+
       // Always load analyses if successful
       if (!analysesResponse.ok) {
+        console.error("[HISTORY] Analyses API failed");
         throw new Error("Failed to fetch analyses");
       }
 
       const analysesData = await analysesResponse.json();
+      console.log("[HISTORY] Analyses data:", analysesData);
       const analyses: Analysis[] = analysesData.analyses || [];
+      console.log("[HISTORY] Loaded analyses count:", analyses.length);
 
       // Try to load veilles, but don't fail if it doesn't work (table may not exist yet)
       let veilles: VeilleHistory[] = [];
       if (veillesResponse.ok) {
         try {
           const veillesData = await veillesResponse.json();
+          console.log("[HISTORY] Veilles data:", veillesData);
           const veillesRaw = veillesData.veilles || [];
+          console.log("[HISTORY] Veilles raw count:", veillesRaw.length);
 
           // Transform raw veilles from database to VeilleHistory type
-          veilles = veillesRaw.map((v: any) => ({
-            id: v.id,
-            query: v.query,
-            parameters: v.parameters,
-            keywords: v.keywords,
-            companyId: v.company_id,
-            subQueries: v.sub_queries,
-            results: v.results,
-            finalReport: v.final_report,
-            modelUsed: v.model_used,
-            createdAt: new Date(v.created_at),
-            updatedAt: new Date(v.updated_at),
-          }));
+          veilles = veillesRaw.map((v: any) => {
+            console.log("[HISTORY] Transforming veille:", v);
+            return {
+              id: v.id,
+              query: v.query,
+              parameters: v.parameters,
+              keywords: v.keywords,
+              companyId: v.company_id,
+              subQueries: v.sub_queries,
+              results: v.results,
+              finalReport: v.final_report,
+              modelUsed: v.model_used,
+              createdAt: new Date(v.created_at),
+              updatedAt: new Date(v.updated_at),
+            };
+          });
+          console.log("[HISTORY] Transformed veilles:", veilles);
         } catch (veilleError) {
-          console.error("Error loading veilles (non-blocking):", veilleError);
+          console.error("[HISTORY] Error loading veilles (non-blocking):", veilleError);
           // Continue without veilles
         }
       } else {
-        console.warn("Veilles API failed (table may not exist yet), continuing with analyses only");
+        const errorText = await veillesResponse.text();
+        console.warn("[HISTORY] Veilles API failed:", veillesResponse.status, errorText);
       }
 
       // Transform to unified Report type
@@ -87,12 +102,17 @@ export default function HistoryPage() {
         ...veilles.map((v) => ({ type: "veille" as const, data: v })),
       ];
 
+      console.log("[HISTORY] Total reports before sort:", allReports.length);
+      console.log("[HISTORY] All reports:", allReports);
+
       // Sort by date (most recent first)
       allReports.sort((a, b) => {
         const dateA = a.data.createdAt.getTime();
         const dateB = b.data.createdAt.getTime();
         return dateB - dateA;
       });
+
+      console.log("[HISTORY] Reports after sort:", allReports.length);
 
       setReports(allReports);
 
@@ -106,15 +126,18 @@ export default function HistoryPage() {
         );
       });
 
-      setStats({
+      const newStats = {
         total: allReports.length,
         totalAnalyses: analyses.length,
         totalVeilles: veilles.length,
         thisMonth: thisMonthReports.length,
         averageDuration: analysesData.stats?.averageDuration || 0,
-      });
+      };
+
+      console.log("[HISTORY] Stats:", newStats);
+      setStats(newStats);
     } catch (error) {
-      console.error("Error loading reports:", error);
+      console.error("[HISTORY] Error loading reports:", error);
       toast({
         title: "Erreur",
         description: "Impossible de charger l'historique",
@@ -122,6 +145,7 @@ export default function HistoryPage() {
       });
     } finally {
       setIsLoading(false);
+      console.log("[HISTORY] Loading finished");
     }
   }, [toast]);
 

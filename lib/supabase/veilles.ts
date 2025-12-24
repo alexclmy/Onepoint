@@ -9,19 +9,24 @@ export async function getAllVeilles(): Promise<{
   error?: string;
 }> {
   try {
+    console.log("[VEILLES API] Fetching all veilles from database...");
+
     const { data, error } = await supabase
       .from("veille_history")
       .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching veilles:", error);
+      console.error("[VEILLES API] Supabase error:", error);
       return { veilles: [], error: error.message };
     }
 
+    console.log("[VEILLES API] Successfully fetched veilles:", data?.length || 0);
+    console.log("[VEILLES API] Veilles data:", data);
+
     return { veilles: data || [] };
   } catch (error) {
-    console.error("Unexpected error fetching veilles:", error);
+    console.error("[VEILLES API] Unexpected error fetching veilles:", error);
     return {
       veilles: [],
       error: error instanceof Error ? error.message : "Unknown error",
