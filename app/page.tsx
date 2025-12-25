@@ -177,7 +177,7 @@ export default function HomePage() {
                   throw new Error(data.error);
                 }
               } catch (parseError) {
-                logger.warn("Failed to parse SSE event", parseError, { line });
+                logger.error("Failed to parse SSE event", parseError, { line });
               }
             }
           }
