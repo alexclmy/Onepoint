@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { CompanySelector } from "@/components/analysis/company-selector";
+import { VeilleResults, VeilleEvent } from "@/components/oneveille/veille-results";
 import { supabase } from "@/lib/supabase/client";
 import { Company } from "@/types";
 import { Radar, Sparkles, Globe, Clock, Briefcase, X, Loader2 } from "lucide-react";
@@ -37,9 +38,22 @@ export default function OneVeillePage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
 
+  // Veille execution
+  const [isExecutingVeille, setIsExecutingVeille] = useState(false);
+  const [veilleEvents, setVeilleEvents] = useState<VeilleEvent[]>([]);
+  const [veilleStarted, setVeilleStarted] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     loadCompanies();
   }, []);
+
+  // Auto-scroll to results when veille starts
+  useEffect(() => {
+    if (veilleStarted && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [veilleStarted]);
 
   const loadCompanies = async () => {
     try {
@@ -109,13 +123,72 @@ export default function OneVeillePage() {
   };
 
   const handleLaunchVeille = async () => {
-    // TODO: Implement veille execution
-    console.log("Launching veille with:", {
-      query,
-      params,
-      selectedKeywords,
-      selectedCompanyId,
-    });
+    if (selectedKeywords.length === 0) return;
+
+    setIsExecutingVeille(true);
+    setVeilleStarted(true);
+    setVeilleEvents([]);
+
+    try {
+      const response = await fetch("/api/oneveille/execute-veille", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query,
+          parameters: params,
+          keywords: selectedKeywords,
+          companyId: selectedCompanyId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors du lancement de la veille");
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("event:")) {
+            const eventType = line.substring(7).trim();
+            continue;
+          }
+
+          if (line.startsWith("data:")) {
+            const data = line.substring(6).trim();
+            if (data) {
+              try {
+                const parsed = JSON.parse(data);
+                const eventIndex = lines.indexOf(line);
+                const eventType = eventIndex > 0 && lines[eventIndex - 1].startsWith("event:")
+                  ? lines[eventIndex - 1].substring(7).trim()
+                  : "unknown";
+
+                setVeilleEvents((prev) => [...prev, { type: eventType as any, data: parsed }]);
+              } catch (e) {
+                console.error("Failed to parse SSE data:", e);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      setVeilleEvents((prev) => [...prev, { type: "error", data: { error: String(error) } }]);
+    } finally {
+      setIsExecutingVeille(false);
+    }
   };
 
   const getSliderLabel = (value: number, type: "geography" | "temporality" | "focus") => {
@@ -314,12 +387,21 @@ export default function OneVeillePage() {
                   onClick={handleLaunchVeille}
                   size="lg"
                   className="w-full"
-                  disabled={selectedKeywords.length === 0}
+                  disabled={selectedKeywords.length === 0 || isExecutingVeille}
                 >
-                  <Radar className="mr-2 h-5 w-5" />
-                  Lancer la veille stratégique
+                  {isExecutingVeille ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Veille en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Radar className="mr-2 h-5 w-5" />
+                      Lancer la veille stratégique
+                    </>
+                  )}
                 </Button>
-                {selectedKeywords.length === 0 && (
+                {selectedKeywords.length === 0 && !isExecutingVeille && (
                   <p className="mt-2 text-center text-sm text-muted-foreground">
                     Veuillez sélectionner au moins 1 mot-clé pour continuer
                   </p>
@@ -327,6 +409,13 @@ export default function OneVeillePage() {
               </CardContent>
             </Card>
           </>
+        )}
+
+        {/* Veille Results */}
+        {veilleStarted && (
+          <div ref={resultsRef} className="mt-8">
+            <VeilleResults isExecuting={isExecutingVeille} events={veilleEvents} />
+          </div>
         )}
       </div>
     </div>
