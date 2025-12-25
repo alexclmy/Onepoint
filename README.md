@@ -32,11 +32,13 @@ Un outil de consulting stratégique professionnel propulsé par l'IA, utilisant 
 
 - 🤖 **25 experts IA** avec des personnalités distinctes (personnages de fiction)
 - 📊 **14 types d'analyses stratégiques** (SWOT, PESTEL, Porter, BCG, etc.)
+- 📡 **OneVeille** : Veille stratégique intelligente avec recherche web multi-agents
 - 💬 **Système de débat multi-agents** pour des analyses approfondies
 - 🏢 **Gestion multi-entreprises** avec contexte enrichi
 - 📄 **Rapports Markdown professionnels** avec mise en forme avancée
 - 🌐 **Recherche web native** intégrée via OpenAI Responses API
 - 🔍 **Mode Debug complet** pour transparence des appels LLM
+- 📚 **Historique unifié** : Analyses et veilles consultables, téléchargeables
 - ⚙️ **Configuration LLM flexible** avec support GPT-5 et modèles de raisonnement
 - 🎨 **Interface moderne** avec shadcn/ui
 
@@ -83,8 +85,22 @@ Un outil de consulting stratégique professionnel propulsé par l'IA, utilisant 
 
 ### 📄 Export et Sauvegarde
 - ✅ Génération PDF avec branding Onepoint
-- ✅ Historique des analyses (interface prête, sauvegarde à implémenter)
-- ✅ Téléchargement des rapports
+- ✅ Historique unifié analyses + veilles avec recherche et tri
+- ✅ Téléchargement des rapports PDF
+- ✅ Visualisation complète des rapports archivés
+- ✅ Suppression d'analyses et veilles
+
+### 📡 OneVeille - Veille Stratégique Intelligente
+- ✅ Interface intuitive en 5 étapes guidées
+- ✅ Analyse AI de la requête avec suggestion de paramètres
+- ✅ 3 gauges interactives (Géographie, Temporalité, Focus)
+- ✅ Génération de mots-clés par IA (8-12 suggestions)
+- ✅ Sélection contextuelle d'entreprise
+- ✅ Décomposition automatique en sous-questions
+- ✅ Recherches web parallèles multi-agents
+- ✅ Synthèse structurée avec sources
+- ✅ Streaming temps réel des résultats
+- ✅ Sauvegarde en base et accès via Historique
 
 ### ⚙️ Configuration Flexible
 - ✅ Configuration LLM (provider, model, temperature, max_output_tokens)
@@ -396,6 +412,246 @@ Chaque analyse dispose d'un **template de sortie structuré** qui guide les expe
 
 ---
 
+## 📡 OneVeille - Veille Stratégique Intelligente
+
+**OneVeille** est une fonctionnalité avancée de veille stratégique qui combine l'intelligence artificielle et la recherche web pour produire des rapports de veille complets et actionnables.
+
+### 🎯 Concept
+
+OneVeille transforme une simple question de veille en un rapport stratégique complet via un processus en 5 étapes :
+
+```
+Requête de veille
+    ↓
+Analyse IA (paramètres + mots-clés)
+    ↓
+Ajustement des paramètres (3 gauges)
+    ↓
+Sélection des mots-clés (max 3)
+    ↓
+Exécution multi-agents
+    ↓
+Rapport de veille structuré
+```
+
+### 📊 Les 3 Paramètres Intelligents
+
+#### 1. **Géographie** (Local → Global)
+- **Local** : Ville, région spécifique
+- **Régional** : Zone géographique étendue
+- **National** : Pays
+- **Continental** : Europe, Asie, etc.
+- **Global** : Mondial
+
+#### 2. **Temporalité** (Récent → Historique)
+- **Dernière semaine** : Actualité très récente
+- **Dernier mois** : Actualité récente
+- **3 derniers mois** : Tendances émergentes
+- **6 derniers mois** : Évolutions moyennes
+- **Historique** : Vue complète historique
+
+#### 3. **Focus** (Business → Technique)
+- **Business pur** : Marché, finance, stratégie
+- **Mix Business** : Business + aspects techniques
+- **Équilibré** : Mix équilibré
+- **Mix Technique** : Technique + aspects business
+- **Technique pur** : Innovation, R&D, technologie
+
+### 🔍 Workflow de OneVeille
+
+#### Étape 1 : Saisie de la Requête
+L'utilisateur décrit sa demande de veille en langage naturel.
+
+**Exemple** :
+```
+"Quelles sont les tendances actuelles en IA générative
+dans le secteur de la santé ?"
+```
+
+#### Étape 2 : Analyse IA
+Un agent IA analyse la requête et suggère :
+- **Valeurs initiales** des 3 paramètres (géographie, temporalité, focus)
+- **8-12 mots-clés** pertinents pour la recherche
+
+**Exemple de suggestion** :
+- Géographie : 80/100 (Continental→Global)
+- Temporalité : 20/100 (Derniers mois)
+- Focus : 70/100 (Mix Technique)
+- Mots-clés : `IA générative`, `GPT`, `Santé`, `Diagnostic`, `Médecine`, `FDA`, `HIPAA`, `LLM médical`
+
+#### Étape 3 : Ajustement Interactif
+L'utilisateur peut :
+- Ajuster les 3 sliders selon ses besoins
+- Observer les labels sémantiques en temps réel
+- Affiner la portée de la veille
+
+#### Étape 4 : Sélection des Mots-Clés
+- Maximum **3 mots-clés** sélectionnables
+- Système de nuage de mots interactif
+- Sélection guidée par pertinence IA
+
+#### Étape 5 : Exécution Multi-Agents
+Le système exécute 3 phases en parallèle :
+
+##### Phase 1 : Décomposition (Query Decomposition)
+La requête initiale est décomposée en **5-8 sous-questions** ciblées.
+
+```typescript
+Requête: "IA générative dans la santé"
+    ↓
+Sous-questions:
+1. "Quelles sont les applications actuelles de l'IA générative en diagnostic médical ?"
+2. "Quels sont les principaux acteurs développant des LLM médicaux ?"
+3. "Quelle est la réglementation FDA concernant l'IA en santé ?"
+4. "Quels sont les défis éthiques de l'IA générative en médecine ?"
+5. "Quelles sont les perspectives d'investissement dans l'IA santé ?"
+```
+
+##### Phase 2 : Recherches Parallèles (Multi-Agent Web Search)
+Chaque sous-question déclenche une recherche web approfondie :
+- Recherche via OpenAI avec web search natif
+- Extraction des résultats pertinents
+- Synthèse individuelle par sous-question
+
+##### Phase 3 : Synthèse Globale (Final Synthesis)
+Un agent stratégique consolide tous les résultats en un **rapport structuré** :
+
+```markdown
+# Synthèse de Veille Stratégique
+
+## 🎯 Résumé Exécutif
+[2-3 paragraphes clés]
+
+## 📊 Principales Découvertes
+### [Thème 1]
+- Point clé avec [source]
+- Impact et implications
+
+### [Thème 2]
+...
+
+## 🔍 Analyse Détaillée
+[Analyse approfondie par sous-thème]
+
+## 💡 Recommandations Stratégiques
+1. [Recommandation 1]
+2. [Recommandation 2]
+
+## 📚 Sources Clés
+[Liste des sources principales avec URLs]
+```
+
+### 🎨 Interface Utilisateur
+
+#### Visualisation Temps Réel
+Pendant l'exécution, l'utilisateur voit :
+- ✅ Statut de chaque phase (décomposition, recherche, synthèse)
+- ✅ Liste des sous-questions générées
+- ✅ Nombre de résultats trouvés par recherche
+- ✅ Synthèse individuelle de chaque axe
+- ✅ Rapport final au format Markdown
+
+#### Page de Détail Veille
+Chaque veille sauvegardée affiche :
+- 📝 Requête originale
+- ⚙️ Paramètres utilisés (géographie, temporalité, focus)
+- 🏷️ Mots-clés sélectionnés
+- 💡 Sous-questions générées
+- 📊 Rapport complet avec rendu Markdown
+- 📥 Bouton de téléchargement PDF
+
+### 📚 Historique Unifié
+
+Toutes les veilles sont consultables dans la page **Historique** :
+- 📋 Liste unifiée analyses + veilles
+- 🔍 Tri par date (plus récent en premier)
+- 🏷️ Badges différenciés (Analyse bleu / Veille violet)
+- 👁️ Visualisation complète
+- 📥 Téléchargement PDF
+- 🗑️ Suppression
+
+### 💾 Sauvegarde en Base de Données
+
+Table `veille_history` :
+```sql
+CREATE TABLE veille_history (
+  id UUID PRIMARY KEY,
+  query TEXT NOT NULL,
+  parameters JSONB NOT NULL,
+  keywords JSONB NOT NULL,
+  company_id UUID REFERENCES company(id),
+  sub_queries JSONB NOT NULL,
+  results JSONB NOT NULL,
+  final_report TEXT NOT NULL,
+  model_used TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### 📊 Architecture Technique
+
+```
+/app/oneveille/page.tsx
+    ↓ (POST /api/oneveille/analyze-query)
+Analyse requête + génération paramètres/mots-clés
+    ↓ (POST /api/oneveille/execute-veille)
+┌─────────────────────────────────────────┐
+│  Décomposition en sous-questions (LLM)  │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│  Recherches parallèles (OpenAI Web)     │
+│  - Query 1 → Recherche → Synthèse       │
+│  - Query 2 → Recherche → Synthèse       │
+│  - Query N → Recherche → Synthèse       │
+└─────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────┐
+│  Synthèse finale (LLM)                  │
+│  → Rapport Markdown structuré           │
+└─────────────────────────────────────────┘
+    ↓
+Sauvegarde veille_history → Historique
+```
+
+### 🚀 Cas d'Usage
+
+#### Exemple 1 : Veille Concurrentielle
+```
+Requête: "Surveiller les mouvements stratégiques d'OpenAI"
+Géographie: Global (100)
+Temporalité: Derniers mois (30)
+Focus: Business (20)
+Mots-clés: OpenAI, GPT-5, Partenariats
+
+→ Rapport sur acquisitions, partenariats, nouveaux produits
+```
+
+#### Exemple 2 : Veille Technologique
+```
+Requête: "Nouvelles architectures de réseaux neuronaux pour le NLP"
+Géographie: Global (100)
+Temporalité: Dernière semaine (10)
+Focus: Technique (90)
+Mots-clés: Transformers, LLM, Architecture
+
+→ Rapport sur papers récents, innovations techniques
+```
+
+#### Exemple 3 : Veille Réglementaire
+```
+Requête: "Évolutions de la réglementation IA en Europe"
+Géographie: Continental (70)
+Temporalité: 6 derniers mois (80)
+Focus: Business (30)
+Mots-clés: AI Act, RGPD, Conformité
+
+→ Rapport sur nouvelles lois, implications business
+```
+
+---
+
 ## 🛠️ Stack Technique
 
 ### Frontend
@@ -444,12 +700,20 @@ onepoint-ai-consulting/
 │   │   ├── product-roadmap/page.tsx
 │   │   ├── ux-audit/page.tsx
 │   │   └── risk-assessment/page.tsx
+│   ├── oneveille/page.tsx            # 🆕 OneVeille - Veille stratégique
+│   ├── veille/[id]/page.tsx          # 🆕 Page de détail d'une veille
+│   ├── analysis/[id]/page.tsx        # Page de détail d'une analyse
 │   ├── company/page.tsx              # Gestion des entreprises
 │   ├── experts/page.tsx              # Gestion des experts custom
 │   ├── config/page.tsx               # Configuration LLM
-│   ├── history/page.tsx              # Historique des analyses
+│   ├── history/page.tsx              # 🆕 Historique unifié (analyses + veilles)
 │   └── api/
 │       ├── analyze/route.ts          # Endpoint analyse (SSE streaming)
+│       ├── analyses/route.ts         # CRUD analyses
+│       ├── veilles/route.ts          # 🆕 CRUD veilles
+│       ├── oneveille/
+│       │   ├── analyze-query/route.ts    # 🆕 Analyse requête + génération paramètres
+│       │   └── execute-veille/route.ts   # 🆕 Exécution veille (SSE streaming)
 │       └── generate-pdf/route.ts     # Endpoint génération PDF
 │
 ├── components/
@@ -462,6 +726,7 @@ onepoint-ai-consulting/
 │   │   ├── dialog.tsx
 │   │   ├── badge.tsx
 │   │   ├── scroll-area.tsx
+│   │   ├── slider.tsx                # 🆕 Slider Radix UI (pour OneVeille)
 │   │   └── ...
 │   ├── layout/
 │   │   └── sidebar.tsx               # Navigation latérale
@@ -472,8 +737,10 @@ onepoint-ai-consulting/
 │   │   ├── analysis-input.tsx        # Zone de saisie contexte
 │   │   ├── timeline.tsx              # Timeline avec Debug dialog
 │   │   └── swot-matrix.tsx           # Matrice SWOT structurée (optionnel)
+│   ├── oneveille/
+│   │   └── veille-results.tsx        # 🆕 Affichage résultats veille (SSE streaming)
 │   ├── markdown/
-│   │   └── markdown-renderer.tsx     # 🆕 Rendu Markdown professionnel
+│   │   └── markdown-renderer.tsx     # Rendu Markdown professionnel
 │   └── actions/
 │       ├── action-page-template.tsx  # Template réutilisable pour pages actions
 │       └── analysis-results.tsx      # Affichage résultats avec timeline + rapport
@@ -481,7 +748,7 @@ onepoint-ai-consulting/
 ├── lib/
 │   ├── agents/
 │   │   ├── hybrid-orchestrator.ts    # 🎯 Orchestrateur hybride (CŒUR)
-│   │   ├── responses-agent.ts        # 🆕 Agent utilisant Responses API
+│   │   ├── responses-agent.ts        # Agent utilisant Responses API
 │   │   ├── orchestrator.ts           # [BACKUP] Ancien orchestrateur
 │   │   └── agent-base.ts             # Classe Agent individuel
 │   ├── actions/
@@ -489,13 +756,18 @@ onepoint-ai-consulting/
 │   ├── experts/
 │   │   └── predefined-experts.ts     # 24 experts prédéfinis
 │   ├── openai/
-│   │   ├── responses-client.ts       # 🆕 Client Responses API avec web search
+│   │   ├── responses-client.ts       # Client Responses API avec web search
 │   │   └── client.ts                 # Client OpenAI Chat Completions
 │   ├── pdf/
 │   │   └── generator.ts              # Générateur de PDF
 │   └── supabase/
 │       ├── client.ts                 # Client Supabase (lazy initialization)
-│       └── schema.sql                # Schéma de base de données
+│       ├── analyses.ts               # Helpers CRUD analyses
+│       ├── veilles.ts                # 🆕 Helpers CRUD veilles
+│       ├── schema.sql                # Schéma complet de base de données
+│       ├── migration-experts.sql     # Migration experts prédéfinis
+│       ├── migration-veille.sql      # 🆕 Migration table veille_history
+│       └── README.md                 # 🆕 Guide migrations SQL
 │
 ├── types/
 │   └── index.ts                      # Types TypeScript centralisés
@@ -838,8 +1110,8 @@ CREATE TABLE llm_configs (
 );
 ```
 
-#### Table `analyses` (à venir)
-Stockera l'historique des analyses pour consultation ultérieure.
+#### Table `analyses`
+Stocke l'historique des analyses multi-agents.
 
 ```sql
 CREATE TABLE analyses (
@@ -857,11 +1129,59 @@ CREATE TABLE analyses (
 );
 ```
 
+#### Table `veille_history` 🆕
+Stocke l'historique des veilles stratégiques OneVeille.
+
+```sql
+CREATE TABLE veille_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  query TEXT NOT NULL,
+  parameters JSONB NOT NULL,
+  keywords JSONB NOT NULL,
+  company_id UUID REFERENCES company(id) ON DELETE SET NULL,
+  sub_queries JSONB NOT NULL,
+  results JSONB NOT NULL,
+  final_report TEXT NOT NULL,
+  model_used TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**Champs de `veille_history`** :
+- `query` : Requête originale de veille
+- `parameters` : JSONB avec `{geography, temporality, focus}`
+- `keywords` : Array JSONB des mots-clés sélectionnés
+- `company_id` : Référence optionnelle à l'entreprise
+- `sub_queries` : Array JSONB des sous-questions générées
+- `results` : Array JSONB avec résultats de chaque recherche
+- `final_report` : Rapport final au format Markdown
+- `model_used` : Modèle LLM utilisé (ex: `gpt-4o`)
+
+#### Table `user_questions`
+Stocke les questions posées par les agents aux utilisateurs durant les analyses.
+
+```sql
+CREATE TABLE user_questions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  analysis_id UUID REFERENCES analyses(id) ON DELETE CASCADE,
+  agent_id TEXT NOT NULL,
+  agent_name TEXT NOT NULL,
+  question TEXT NOT NULL,
+  answer TEXT,
+  answered_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
 ### Indexes
 
 ```sql
 CREATE INDEX idx_analyses_created_at ON analyses(created_at DESC);
 CREATE INDEX idx_experts_is_custom ON experts(is_custom);
+CREATE INDEX idx_user_questions_analysis_id ON user_questions(analysis_id);
+CREATE INDEX idx_veille_history_created_at ON veille_history(created_at DESC);
+CREATE INDEX idx_veille_history_company_id ON veille_history(company_id);
 ```
 
 ---
