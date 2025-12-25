@@ -1,6 +1,23 @@
+/**
+ * OneVeille Execution API Route
+ *
+ * Handles strategic intelligence ("veille") requests with:
+ * - Query decomposition into focused sub-questions
+ * - Parallel web searches for each sub-question
+ * - Individual synthesis per sub-question
+ * - Final global synthesis
+ * - Real-time SSE streaming of progress
+ * - Database persistence
+ *
+ * @module ExecuteVeilleRoute
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { supabase } from "@/lib/supabase/client";
+import { createModuleLogger } from "@/lib/utils/logger";
+
+const log = createModuleLogger('ExecuteVeille');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -127,7 +144,8 @@ async function executeWebSearch(subQuery: string, model: string): Promise<Search
     });
 
     if (!response.ok) {
-      console.error("Web search failed:", await response.text());
+      const errorText = await response.text();
+      log.error("Web search failed", errorText);
       return [];
     }
 
@@ -141,7 +159,7 @@ async function executeWebSearch(subQuery: string, model: string): Promise<Search
     const parsed = JSON.parse(content);
     return parsed.results || [];
   } catch (error) {
-    console.error("Error in web search:", error);
+    log.error("Exception during web search", error);
     return [];
   }
 }
@@ -261,7 +279,7 @@ export async function POST(request: NextRequest) {
 
         const model = llmConfig?.model || "gpt-4o";
 
-        console.log("🔍 [ONEVEILLE] Starting veille execution:", {
+        log.info('Starting veille execution', {
           query,
           parameters,
           keywords,
@@ -353,8 +371,9 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (saveError) {
-          console.error("Error saving veille:", saveError);
+          log.error("Failed to save veille to database", saveError);
         } else {
+          log.info('Veille saved successfully', { veilleId: savedVeille.id });
           controller.enqueue(
             encoder.encode(encodeSSE("saved", { veilleId: savedVeille.id }))
           );
@@ -366,7 +385,7 @@ export async function POST(request: NextRequest) {
 
         controller.close();
       } catch (error) {
-        console.error("Error in veille execution:", error);
+        log.error("Veille execution failed", error);
         controller.enqueue(
           encoder.encode(encodeSSE("error", { error: String(error) }))
         );

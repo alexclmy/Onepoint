@@ -1,12 +1,26 @@
 /**
  * Hybrid Orchestrator using Responses API
- * Simplified orchestration without LangGraph for now
- * Uses OpenAI Responses API with native web search
+ *
+ * This orchestrator manages the multi-agent analysis workflow using OpenAI's Responses API.
+ * It coordinates multiple expert agents to analyze user requests through several phases:
+ * 1. Initial individual analyses by each expert
+ * 2. Debate and refinement rounds (2 rounds)
+ * 3. Action-specific synthesis
+ * 4. Final cross-action synthesis
+ *
+ * Features:
+ * - Native web search integration via Responses API
+ * - Real-time contribution streaming via Server-Sent Events (SSE)
+ * - Complete debug information capture (prompts, config, web searches)
+ * - Support for user involvement (questions/answers)
+ *
+ * @module HybridOrchestrator
  */
 
 import { ResponsesAgent } from "./responses-agent";
 import { Expert, ActionType, Contribution, UserQuestion, ContributionDebugInfo } from "@/types";
 import { ACTIONS } from "@/lib/actions/action-definitions";
+import { createModuleLogger } from "@/lib/utils/logger";
 
 export interface HybridOrchestrationConfig {
   userInput: string;
@@ -28,6 +42,11 @@ export interface HybridOrchestrationResult {
   questionsAsked: UserQuestion[];
 }
 
+const log = createModuleLogger('HybridOrchestrator');
+
+/**
+ * Main orchestrator class for managing multi-agent analysis workflows
+ */
 export class HybridOrchestrator {
   private agents: Map<string, ResponsesAgent>;
   private contributions: Contribution[];
@@ -42,8 +61,11 @@ export class HybridOrchestrator {
     this.initializeAgents();
   }
 
+  /**
+   * Initialize agent instances from selected experts
+   * Creates ResponsesAgent instances for each selected expert with configured LLM settings
+   */
   private initializeAgents(): void {
-    // Filter selected experts from the provided expert pool
     const experts = this.config.allExperts.filter((e) =>
       this.config.selectedExperts.includes(e.id)
     );
@@ -59,7 +81,7 @@ export class HybridOrchestrator {
       this.agents.set(expert.id, agent);
     });
 
-    console.log("🔧 [HYBRID ORCHESTRATOR] Initialized with:", {
+    log.debug('Initialized agents', {
       agentsCount: this.agents.size,
       webSearch: this.config.useWebSearch,
       model: this.config.model,
@@ -67,6 +89,10 @@ export class HybridOrchestrator {
     });
   }
 
+  /**
+   * Add a contribution to the timeline and notify listeners
+   * Validates that debug information is present for transparency
+   */
   private addContribution(
     agentId: string,
     agentName: string,
@@ -86,11 +112,11 @@ export class HybridOrchestrator {
       debug,
     };
 
-    // Log debug status for troubleshooting
     if (!debug) {
-      console.warn(`⚠️ [ORCHESTRATOR] Contribution sans debug pour ${agentName} (${type})`);
+      log.warn(`Contribution without debug info for ${agentName} (${type})`);
     } else {
-      console.log(`✅ [ORCHESTRATOR] Contribution avec debug pour ${agentName}:`, {
+      log.debug(`Contribution added for ${agentName}`, {
+        type,
         hasSystemPrompt: !!debug.systemPrompt,
         hasUserPrompt: !!debug.userPrompt,
         model: debug.model,
@@ -136,13 +162,27 @@ export class HybridOrchestrator {
     return answer;
   }
 
+  /**
+   * Run the complete multi-agent analysis workflow
+   *
+   * Workflow phases:
+   * 1. Initial individual analyses for each action
+   * 2. Two rounds of debate and refinement
+   * 3. Action-specific synthesis
+   * 4. Final cross-action synthesis
+   *
+   * @returns Timeline of contributions and final synthesized output
+   */
   async runAnalysis(): Promise<HybridOrchestrationResult> {
-    console.log("🚀 [HYBRID ORCHESTRATOR] Starting multi-agent analysis with Responses API...");
+    log.info('Starting multi-agent analysis with Responses API', {
+      actionsCount: this.config.selectedActions.length,
+      expertsCount: this.agents.size,
+    });
 
     // Phase 1: Initial Analysis by each expert for each action
     for (const actionType of this.config.selectedActions) {
       const action = ACTIONS[actionType];
-      console.log(`\n📋 Analyzing: ${action.name}`);
+      log.info(`Analyzing action: ${action.name}`);
 
       // Get recommended experts for this action (or use all if not enough)
       const relevantAgents = Array.from(this.agents.values()).filter(
@@ -230,7 +270,7 @@ Fournis ton analyse initiale en te concentrant sur ton domaine d'expertise. Sois
       }
 
       // Round 2: Debate and refinement
-      console.log(`💬 Agents debating for ${action.name}...`);
+      log.debug(`Starting debate rounds for ${action.name}`);
 
       for (let round = 0; round < 2; round++) {
         for (const agent of relevantAgents) {
@@ -291,7 +331,7 @@ Fournis ton analyse initiale en te concentrant sur ton domaine d'expertise. Sois
       }
 
       // Round 3: Synthesis for this action
-      console.log(`✅ Synthesizing ${action.name}...`);
+      log.debug(`Creating synthesis for ${action.name}`);
 
       const strategist = Array.from(this.agents.values()).find(
         (a) => a.getExpert().id === "strategy-expert"
@@ -321,7 +361,7 @@ Intègre les insights de tous les experts de manière cohérente et actionnable.
     }
 
     // Final synthesis across all actions
-    console.log("\n🎯 Creating final synthesis...");
+    log.info('Creating final cross-action synthesis');
 
     const finalSynthesisPrompt = `Crée une synthèse exécutive finale qui intègre toutes les analyses réalisées :
 
@@ -368,7 +408,10 @@ Format attendu :
       finalOutput.debug
     );
 
-    console.log("✅ [HYBRID ORCHESTRATOR] Analysis complete!");
+    log.info('Analysis complete', {
+      contributionsCount: this.contributions.length,
+      questionsAsked: this.questionsAsked.length,
+    });
 
     return {
       timeline: this.contributions,

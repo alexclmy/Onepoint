@@ -1,15 +1,34 @@
 /**
  * OpenAI Responses API Client
- * Uses the new Responses API with native web search capabilities
- * https://platform.openai.com/docs/guides/migrate-to-responses
+ *
+ * This module provides an interface to OpenAI's Responses API (2025).
+ * The Responses API is the modern successor to Chat Completions API, offering:
+ * - Native web search capabilities (no external services needed)
+ * - Automatic citation extraction from web sources
+ * - 40-80% cost reduction compared to Chat Completions
+ * - 3-5% performance improvement on benchmarks
+ * - Better handling of reasoning models (GPT-5, o-series)
+ *
+ * Important: GPT-5 and o-series models don't support the temperature parameter
+ *
+ * @see https://platform.openai.com/docs/guides/migrate-to-responses
+ * @module ResponsesClient
  */
 
 import OpenAI from "openai";
 import { getOpenAIClient } from "./client";
+import { createModuleLogger } from "@/lib/utils/logger";
+
+const log = createModuleLogger('ResponsesClient');
 
 /**
  * Check if a model is a reasoning model that doesn't support temperature
- * GPT-5 and o-series models don't support temperature, top_p, presence_penalty, etc.
+ *
+ * GPT-5 and o-series models use built-in reasoning and don't support
+ * temperature, top_p, presence_penalty, or frequency_penalty parameters.
+ *
+ * @param model - Model name to check
+ * @returns True if it's a reasoning model
  */
 function isReasoningModel(model: string): boolean {
   const lowerModel = model.toLowerCase();
@@ -90,7 +109,16 @@ export interface CreateResponseOptions {
 }
 
 /**
- * Create a response using OpenAI's Responses API with native web search
+ * Create a response using OpenAI's Responses API
+ *
+ * This function handles:
+ * - Automatic parameter adjustment for reasoning models
+ * - Web search tool integration
+ * - Citation extraction from web results
+ * - Structured output parsing
+ *
+ * @param options - Configuration for the API call
+ * @returns Parsed response with text, citations, and web search calls
  */
 export async function createResponse(
   options: CreateResponseOptions
@@ -99,7 +127,7 @@ export async function createResponse(
 
   const isReasoning = isReasoningModel(options.model);
 
-  console.log("🚀 [RESPONSES API] Creating response with:", {
+  log.debug('Creating Responses API call', {
     model: options.model,
     isReasoningModel: isReasoning,
     hasWebSearch: options.tools?.some((t) => t.type === "web_search"),
@@ -127,7 +155,7 @@ export async function createResponse(
     // Call the Responses API
     const response = await (client as any).responses.create(apiParams);
 
-    console.log("✅ [RESPONSES API] Response received:", {
+    log.debug('Responses API call completed', {
       outputItemsCount: response.output?.length || 0,
     });
 
@@ -146,7 +174,7 @@ export async function createResponse(
           });
 
           if (item.action?.type === "search") {
-            console.log(`🔍 [WEB SEARCH] Query: "${item.action.query}"`, {
+            log.debug(`Web search executed: "${item.action.query}"`, {
               domainsSearched: item.action.domains?.length || 0,
               sourcesFound: item.action.sources?.length || 0,
             });
@@ -166,7 +194,7 @@ export async function createResponse(
       }
     }
 
-    console.log("📊 [RESPONSES API] Extracted:", {
+    log.debug('Response extracted successfully', {
       textLength: outputText.length,
       citationsCount: citations.length,
       webSearchCallsCount: webSearchCalls.length,
@@ -179,13 +207,21 @@ export async function createResponse(
       fullResponse: response,
     };
   } catch (error: any) {
-    console.error("❌ [RESPONSES API] Error:", error.message);
+    log.error('Responses API call failed', error);
     throw new Error(`Responses API error: ${error.message}`);
   }
 }
 
 /**
- * Create a response with web search enabled (shortcut)
+ * Create a response with web search enabled (convenience function)
+ *
+ * This is a shortcut for createResponse() with web search tool pre-configured.
+ * Use this when you want to enable native web search capabilities.
+ *
+ * @param model - OpenAI model to use
+ * @param input - User input/prompt
+ * @param options - Optional configuration (temperature, tokens, domains)
+ * @returns Response with web search results and citations
  */
 export async function createResponseWithWebSearch(
   model: string,

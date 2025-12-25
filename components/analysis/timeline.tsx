@@ -1,5 +1,21 @@
 "use client";
 
+/**
+ * Timeline Component
+ *
+ * Displays the chronological timeline of agent contributions during analysis.
+ *
+ * Features:
+ * - Real-time contribution streaming
+ * - Expandable/collapsible contribution cards
+ * - Type-based color coding and icons
+ * - Debug dialog with full technical details
+ * - Web search indicators
+ * - Markdown rendering for content
+ *
+ * @module Timeline
+ */
+
 import { useState } from "react";
 import { Contribution } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +32,7 @@ import { MessageSquare, AlertTriangle, CheckCircle2, HelpCircle, FileText, Info,
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
+import { logger } from "@/lib/utils/logger";
 
 interface TimelineProps {
   contributions: Contribution[];
@@ -124,7 +141,10 @@ export function Timeline({ contributions }: TimelineProps) {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!contribution.debug) {
-                                console.warn("⚠️ Contribution sans données debug:", contribution);
+                                logger.warn("No debug data available for contribution", {
+                                  contributionId: contribution.id,
+                                  agentName: contribution.agentName,
+                                });
                                 alert("Aucune donnée de debug disponible pour cette contribution.");
                                 return;
                               }

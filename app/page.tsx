@@ -1,5 +1,20 @@
 "use client";
 
+/**
+ * Home Page - New Analysis Creation
+ *
+ * This is the main page for creating new strategic analyses.
+ * Users can:
+ * - Select companies for context enrichment
+ * - Enter analysis requests
+ * - Choose actions to perform (max 3)
+ * - Select expert agents (max 3)
+ * - Enable web search and user involvement
+ * - View real-time analysis progress via SSE streaming
+ *
+ * @module HomePage
+ */
+
 import { useState, useEffect, useRef } from "react";
 import { ActionSelector } from "@/components/analysis/action-selector";
 import { ExpertSelector } from "@/components/analysis/expert-selector";
@@ -11,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ActionType, Contribution, UserQuestion, Company } from "@/types";
 import { Play, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { logger } from "@/lib/utils/logger";
 
 export default function HomePage() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -41,7 +57,7 @@ export default function HomePage() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Erreur lors du chargement des entreprises:", error);
+        logger.error("Failed to load companies", error);
         return;
       }
 
@@ -54,7 +70,7 @@ export default function HomePage() {
 
       setCompanies(transformedData);
     } catch (error) {
-      console.error("Erreur:", error);
+      logger.error("Exception while loading companies", error);
     }
   };
 
@@ -113,7 +129,7 @@ export default function HomePage() {
       const decoder = new TextDecoder();
 
       if (!reader) {
-        console.error("❌ No reader available for response");
+        logger.error("No reader available for SSE stream");
         return;
       }
 
@@ -123,7 +139,7 @@ export default function HomePage() {
         const { done, value } = await reader.read();
 
         if (done) {
-          console.log("✅ Stream completed");
+          logger.debug("SSE stream completed");
           break;
         }
 
@@ -147,29 +163,28 @@ export default function HomePage() {
                 const jsonData = line.slice(6);
                 const data = JSON.parse(jsonData);
 
-                console.log("📨 Received SSE event:", data.type);
+                logger.debug('Received SSE event', { type: data.type });
 
                 if (data.type === "contribution") {
-                  console.log("➕ Adding contribution from", data.contribution.agentName);
                   setTimeline((prev) => [...prev, data.contribution]);
                 } else if (data.type === "question") {
                   setCurrentQuestion(data.question);
                 } else if (data.type === "complete") {
-                  console.log("✅ Analysis complete");
+                  logger.info('Analysis completed successfully');
                   setAnalysisComplete(true);
                 } else if (data.type === "error") {
-                  console.error("❌ Analysis error:", data.error);
+                  logger.error("Analysis failed", data.error);
                   throw new Error(data.error);
                 }
               } catch (parseError) {
-                console.error("❌ Failed to parse SSE data:", line, parseError);
+                logger.error("Failed to parse SSE event", parseError, { line });
               }
             }
           }
         }
       }
     } catch (error) {
-      console.error("Analysis error:", error);
+      logger.error("Analysis request failed", error);
     } finally {
       setIsAnalyzing(false);
     }
@@ -177,7 +192,7 @@ export default function HomePage() {
 
   const handleDownloadPDF = async () => {
     // TODO: Implement PDF download
-    console.log("Downloading PDF...");
+    logger.debug("PDF download requested");
   };
 
   return (

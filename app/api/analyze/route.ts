@@ -1,3 +1,23 @@
+/**
+ * Analysis API Route
+ *
+ * This endpoint handles multi-agent strategic analysis requests.
+ * It orchestrates multiple AI experts to analyze business questions through:
+ * - Initial individual analyses
+ * - Debate and refinement rounds
+ * - Action-specific synthesis
+ * - Final cross-action synthesis
+ *
+ * Features:
+ * - Server-Sent Events (SSE) streaming for real-time updates
+ * - Database persistence (Supabase)
+ * - LLM configuration loading
+ * - Company context enrichment
+ * - Debug information capture
+ *
+ * @module AnalyzeRoute
+ */
+
 import { NextRequest } from "next/server";
 import { ActionType, Contribution, UserQuestion, Expert } from "@/types";
 import { HybridOrchestrator } from "@/lib/agents/hybrid-orchestrator";
@@ -7,6 +27,9 @@ import {
   completeAnalysis,
   failAnalysis,
 } from "@/lib/supabase/analyses";
+import { createModuleLogger } from "@/lib/utils/logger";
+
+const log = createModuleLogger('AnalyzeRoute');
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,9 +99,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (createError || !analysisId) {
-      console.error("Failed to create analysis:", createError);
+      log.error("Failed to create analysis in database", createError);
       return new Response("Failed to create analysis", { status: 500 });
     }
+
+    log.info('Analysis created', { analysisId });
 
     // Load all experts from Supabase
     let allExperts: Expert[] = [];
@@ -90,7 +115,7 @@ export async function POST(request: NextRequest) {
         .order("created_at", { ascending: false });
 
       if (expertsError) {
-        console.error("Error loading experts:", expertsError);
+        log.error("Failed to load experts from database", expertsError);
         return new Response("Failed to load experts", { status: 500 });
       }
 
@@ -107,7 +132,7 @@ export async function POST(request: NextRequest) {
         avatar: expert.avatar,
       }));
     } catch (error) {
-      console.error("Error loading experts:", error);
+      log.error("Exception while loading experts", error);
       return new Response("Failed to load experts", { status: 500 });
     }
 
@@ -129,11 +154,10 @@ export async function POST(request: NextRequest) {
             .limit(1)
             .maybeSingle();
 
-          // Debug: Log raw config from database
-          console.log("🔍 [DEBUG] Config chargée depuis Supabase:", {
+          // Load LLM configuration
+          log.debug('LLM config loaded from database', {
             hasConfig: !!llmConfig,
-            error: configError,
-            rawConfig: llmConfig,
+            hasError: !!configError,
           });
 
           // Use user config or fallback to defaults (GPT-5.2 is the new default)
@@ -141,22 +165,12 @@ export async function POST(request: NextRequest) {
           const temperature = llmConfig?.temperature ?? 0.7;
           const maxTokens = llmConfig?.max_tokens || 4000;
 
-          console.log("🤖 [ANALYSE DÉMARRAGE] Configuration LLM:", {
-            source: llmConfig ? "✅ Config utilisateur (BDD)" : "⚠️ Valeurs par défaut",
+          log.info('Starting analysis with LLM configuration', {
+            source: llmConfig ? 'database' : 'defaults',
             model,
             temperature,
             maxTokens,
-            webSearchActivée: useWebSearch || false,
-          });
-
-          // Additional debug: show what will be passed to orchestrator
-          console.log("🔧 [DEBUG] Paramètres pour Hybrid Orchestrator (Responses API):", {
-            model,
-            temperature,
-            maxTokens,
-            useWebSearch: useWebSearch || false,
-            usingResponsesAPI: true,
-            nativeWebSearch: true,
+            webSearchEnabled: useWebSearch || false,
           });
 
           // Use Hybrid Orchestrator with Responses API and native web search
@@ -198,7 +212,9 @@ export async function POST(request: NextRequest) {
           });
 
           if (completeError) {
-            console.error("Failed to save analysis results:", completeError);
+            log.error("Failed to save analysis results", completeError);
+          } else {
+            log.info('Analysis completed successfully', { analysisId });
           }
 
           sendEvent({
@@ -212,7 +228,7 @@ export async function POST(request: NextRequest) {
 
           controller.close();
         } catch (error) {
-          console.error("Orchestration error:", error);
+          log.error("Orchestration failed", error, { analysisId });
 
           // Mark analysis as failed in database
           await failAnalysis(
@@ -237,7 +253,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("API error:", error);
+    log.error("API request failed", error);
     return new Response("Internal server error", { status: 500 });
   }
 }
