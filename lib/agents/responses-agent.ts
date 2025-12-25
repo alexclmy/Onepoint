@@ -1,11 +1,25 @@
 /**
- * Agent using OpenAI's Responses API with native web search
- * This is the modern approach recommended by OpenAI for 2025
+ * ResponsesAgent - Individual expert agent using OpenAI's Responses API
+ *
+ * Each agent represents a single expert with:
+ * - A unique personality and expertise (system prompt)
+ * - Conversation history maintenance
+ * - Optional native web search capabilities
+ * - Complete debug information capture
+ *
+ * Uses OpenAI's Responses API (2025) which provides:
+ * - Native web search integration
+ * - Better performance than Chat Completions API
+ * - 40-80% cost reduction
+ * - Automatic citation extraction
+ *
+ * @module ResponsesAgent
  */
 
 import { Expert, Contribution, ContributionDebugInfo, WebSearchDebugInfo } from "@/types";
 import { createResponseWithWebSearch, URLCitation, WebSearchCall } from "@/lib/openai/responses-client";
 import { DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS } from "@/lib/openai/client";
+import { createModuleLogger } from "@/lib/utils/logger";
 
 export interface ResponsesGenerateResult {
   content: string;
@@ -13,6 +27,11 @@ export interface ResponsesGenerateResult {
   citations?: URLCitation[];
 }
 
+const log = createModuleLogger('ResponsesAgent');
+
+/**
+ * Agent class representing an individual expert in the multi-agent system
+ */
 export class ResponsesAgent {
   private expert: Expert;
   private model: string;
@@ -35,7 +54,7 @@ export class ResponsesAgent {
     this.useWebSearch = useWebSearch;
     this.conversationHistory = [];
 
-    console.log(`🤖 [RESPONSES AGENT INIT] ${expert.name}:`, {
+    log.debug(`Initialized agent: ${expert.name}`, {
       model: this.model,
       temperature: this.temperature,
       maxTokens: this.maxTokens,
@@ -50,9 +69,13 @@ export class ResponsesAgent {
 
   /**
    * Generate a response using Responses API
+   *
+   * @param prompt - The user's prompt/question for this expert
+   * @param context - Optional context from previous contributions
+   * @returns Generated content with complete debug information
    */
   async generate(prompt: string, context?: string[]): Promise<ResponsesGenerateResult> {
-    // Build the full input with system prompt, context, and user prompt
+    // Build the full input combining system prompt, context, history, and current prompt
     let fullInput = `${this.expert.systemPrompt}\n\n`;
 
     if (context && context.length > 0) {
@@ -65,7 +88,7 @@ export class ResponsesAgent {
 
     fullInput += `Requête actuelle :\n${prompt}`;
 
-    console.log(`📤 [RESPONSES API CALL] ${this.expert.name}:`, {
+    log.debug(`Calling Responses API for ${this.expert.name}`, {
       model: this.model,
       temperature: this.temperature,
       max_output_tokens: this.maxTokens,
@@ -118,7 +141,9 @@ export class ResponsesAgent {
         }));
 
       if (webSearches.length > 0) {
-        console.log(`✅ [RESPONSES API] ${webSearches.length} web search(es) performed by ${this.expert.name}`);
+        log.debug(`Web searches performed by ${this.expert.name}`, {
+          searchCount: webSearches.length,
+        });
       }
 
       // Build debug info
@@ -142,13 +167,22 @@ export class ResponsesAgent {
         citations: result.citations,
       };
     } catch (error) {
-      console.error(`❌ [RESPONSES AGENT] Error for ${this.expert.name}:`, error);
+      log.error(`Error generating response for ${this.expert.name}`, error);
       throw error;
     }
   }
 
   /**
-   * React to previous contributions
+   * React to previous contributions from other agents
+   *
+   * The agent analyzes previous contributions and provides:
+   * - Complementary expertise
+   * - Constructive disagreements
+   * - Relevant questions
+   * - Additional recommendations
+   *
+   * @param previousContributions - Contributions from other agents to react to
+   * @returns Generated reaction with debug information
    */
   async react(previousContributions: Contribution[]): Promise<ResponsesGenerateResult> {
     const context = previousContributions.map((c) => `[${c.agentName}]: ${c.content}`);
@@ -164,7 +198,12 @@ Sois concis et apporte de la valeur ajoutée.`;
     return this.generate(prompt, context);
   }
 
+  /**
+   * Reset the conversation history for this agent
+   * Useful when starting a new analysis or action
+   */
   resetHistory(): void {
     this.conversationHistory = [];
+    log.debug(`Conversation history reset for ${this.expert.name}`);
   }
 }
