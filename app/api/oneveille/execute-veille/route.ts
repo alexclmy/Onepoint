@@ -118,14 +118,14 @@ Réponds UNIQUEMENT avec un JSON au format :
 /**
  * Execute web search using OpenAI Responses API with native web search
  */
-async function executeWebSearch(subQuery: string, model: string): Promise<{ results: SearchResult[], debugInfo: any }> {
+async function executeWebSearch(subQuery: string, model: string): Promise<{ results: SearchResult[], synthesis: string, debugInfo: any }> {
   try {
     log.info('Executing web search', { subQuery, model });
 
     // Use the proper Responses API with native web search
     const response = await createResponseWithWebSearch(
       model,
-      `Recherche sur le web pour répondre à cette question: ${subQuery}\n\nFournis une synthèse des informations trouvées avec les sources.`,
+      `Recherche sur le web et réponds à cette question avec les sources trouvées: ${subQuery}`,
       {
         temperature: 0.7,
         max_output_tokens: 2000,
@@ -136,13 +136,14 @@ async function executeWebSearch(subQuery: string, model: string): Promise<{ resu
       subQuery,
       citationsCount: response.citations.length,
       webSearchCallsCount: response.webSearchCalls.length,
+      outputTextLength: response.outputText.length,
     });
 
     // Convert citations to SearchResult format
     const results: SearchResult[] = response.citations.map((citation, index) => ({
       title: citation.title || `Source ${index + 1}`,
       url: citation.url,
-      snippet: response.outputText.substring(citation.start_index, citation.end_index),
+      snippet: response.outputText.substring(citation.start_index, Math.min(citation.end_index, response.outputText.length)),
       relevance: 100 - (index * 10), // Prioritize earlier citations
     }));
 
@@ -159,10 +160,19 @@ async function executeWebSearch(subQuery: string, model: string): Promise<{ resu
       outputLength: response.outputText.length,
     };
 
-    return { results, debugInfo };
+    // Return the output text as synthesis (already includes web search results)
+    return {
+      results,
+      synthesis: response.outputText || "Aucun résultat trouvé.",
+      debugInfo
+    };
   } catch (error) {
     log.error("Exception during web search", error);
-    return { results: [], debugInfo: { error: String(error) } };
+    return {
+      results: [],
+      synthesis: "Erreur lors de la recherche.",
+      debugInfo: { error: String(error) }
+    };
   }
 }
 
@@ -323,7 +333,7 @@ export async function POST(request: NextRequest) {
             encoder.encode(encodeSSE("searchStart", { index, subQuery }))
           );
 
-          const { results: searchResults, debugInfo } = await executeWebSearch(subQuery, model);
+          const { results: searchResults, synthesis, debugInfo } = await executeWebSearch(subQuery, model);
 
           // Send debug information
           controller.enqueue(
@@ -339,9 +349,7 @@ export async function POST(request: NextRequest) {
             encoder.encode(encodeSSE("searchResults", { index, subQuery, resultsCount: searchResults.length }))
           );
 
-          // Synthesize individual search results
-          const synthesis = await synthesizeSearchResults(subQuery, searchResults, model);
-
+          // synthesis is already provided by the Responses API with web search
           controller.enqueue(
             encoder.encode(encodeSSE("searchComplete", { index, subQuery, synthesis }))
           );

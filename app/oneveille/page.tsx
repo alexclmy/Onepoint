@@ -52,12 +52,15 @@ export default function OneVeillePage() {
     loadCompanies();
   }, []);
 
-  // Auto-scroll to results when veille starts
+  // Auto-scroll to results when veille starts or when new events arrive
   useEffect(() => {
     if (veilleStarted && resultsRef.current) {
-      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Small delay to ensure the results section has rendered
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     }
-  }, [veilleStarted]);
+  }, [veilleStarted, veilleEvents.length]);
 
   const loadCompanies = async () => {
     try {
