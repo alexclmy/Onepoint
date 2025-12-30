@@ -77,7 +77,13 @@ function encodeSSE(event: string, data: any): string {
  */
 async function decompose
 (query: string, params: VeilleRequest["parameters"], keywords: string[], model: string): Promise<string[]> {
-  const systemPrompt = `Tu es un expert en recherche stratégique. Ta tâche est de décomposer une question complexe en 5-8 sous-questions ciblées pour une recherche web approfondie.
+  const systemPrompt = `Tu es un expert en recherche stratégique. Ta tâche est de décomposer une question en 4-6 sous-questions RÉALISTES et ACCESSIBLES pour une recherche web.
+
+IMPORTANT : Les sous-questions doivent être:
+- Formulées de manière à ce qu'on puisse trouver des réponses sur le web (articles, blogs, médias, sites spécialisés)
+- GÉNÉRALES et pas trop spécifiques (éviter de demander des listes exhaustives impossible à obtenir)
+- Orientées vers ce qui est DISPONIBLE publiquement en ligne
+- CONCRÈTES et factuelles (éviter les questions trop académiques ou théoriques)
 
 Contexte des paramètres :
 - Géographie (${params.geography}/100): ${params.geography < 30 ? "Local/Régional" : params.geography < 70 ? "National" : "International/Global"}
@@ -85,6 +91,16 @@ Contexte des paramètres :
 - Focus (${params.focus}/100): ${params.focus < 30 ? "Business/Marché" : params.focus < 70 ? "Équilibré" : "Technique/Innovation"}
 
 Mots-clés prioritaires: ${keywords.join(", ")}
+
+Exemples de BONNES sous-questions (accessibles web):
+- "Quelles sont les principales innovations dans [domaine] en [période]?"
+- "Quels sont les acteurs clés et tendances de [sujet]?"
+- "Quels articles de presse ou analyses ont parlé de [sujet] récemment?"
+
+Exemples de MAUVAISES sous-questions (irréalistes):
+- "Liste exhaustive de tous les papiers sur arXiv en décembre 2025" ❌
+- "Tous les repos GitHub avec étoiles, forks, dates de commit" ❌
+- "Chiffres comparatifs complets sur tous les benchmarks" ❌
 
 Réponds UNIQUEMENT avec un JSON au format :
 {
@@ -95,13 +111,13 @@ Réponds UNIQUEMENT avec un JSON au format :
     model,
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Décompose cette demande de veille en sous-questions ciblées :\n\n"${query}"` },
+      { role: "user", content: `Décompose cette demande de veille en sous-questions RÉALISTES et ACCESSIBLES pour une recherche web :\n\n"${query}"` },
     ],
     response_format: { type: "json_object" },
   };
 
   if (!isReasoningModel(model)) {
-    completionOptions.temperature = 0.8;
+    completionOptions.temperature = 0.7;
   }
 
   const response = await openai.chat.completions.create(completionOptions);
@@ -125,10 +141,23 @@ async function executeWebSearch(subQuery: string, model: string): Promise<{ resu
     // Use the proper Responses API with native web search
     const response = await createResponseWithWebSearch(
       model,
-      `Recherche sur le web et réponds à cette question avec les sources trouvées: ${subQuery}`,
+      `Tu DOIS effectuer une recherche web et répondre à cette question basée sur les résultats trouvés.
+
+Question: ${subQuery}
+
+INSTRUCTIONS IMPORTANTES:
+1. Effectue une recherche web sur cette question (utilise le web search tool)
+2. Synthétise les informations trouvées en 2-4 paragraphes concis
+3. Cite les sources avec [titre](url)
+4. Si tu ne trouves PAS de résultats pertinents, dis-le clairement et explique pourquoi (sujet trop récent, trop spécifique, etc.)
+5. NE POSE JAMAIS de questions de clarification - réponds avec ce que tu trouves
+6. Concentre-toi sur les informations les plus récentes et pertinentes
+
+Réponds maintenant avec une synthèse basée sur ta recherche web:`,
       {
         temperature: 0.7,
-        max_output_tokens: 2000,
+        max_output_tokens: 2500,
+        forceWebSearch: true,
       }
     );
 

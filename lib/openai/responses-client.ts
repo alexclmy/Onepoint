@@ -247,6 +247,7 @@ export async function createResponseWithWebSearch(
     temperature?: number;
     max_output_tokens?: number;
     allowed_domains?: string[];
+    forceWebSearch?: boolean;
   }
 ): Promise<ResponsesAPIResult> {
   return createResponse({
@@ -260,7 +261,7 @@ export async function createResponseWithWebSearch(
           : undefined,
       },
     ],
-    tool_choice: "auto",
+    tool_choice: options?.forceWebSearch !== false ? "required" : "auto",
     reasoning: options?.reasoning,
     temperature: options?.temperature,
     max_output_tokens: options?.max_output_tokens,
