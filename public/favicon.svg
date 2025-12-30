@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#009DDF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0066CC;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="url(#grad)"/>
+
+  <!-- Sparkle star shape -->
+  <path d="M50 15 L52 35 L60 25 L55 40 L70 35 L57 45 L70 50 L57 55 L70 65 L55 60 L60 75 L52 65 L50 85 L48 65 L40 75 L45 60 L30 65 L43 55 L30 50 L43 45 L30 35 L45 40 L40 25 L48 35 Z"
+        fill="white" opacity="0.95"/>
+
+  <!-- Inner glow -->
+  <circle cx="50" cy="50" r="20" fill="white" opacity="0.3"/>
+</svg>
