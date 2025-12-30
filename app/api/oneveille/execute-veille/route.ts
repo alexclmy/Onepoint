@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { supabase } from "@/lib/supabase/client";
 import { createModuleLogger } from "@/lib/utils/logger";
+import { createResponseWithWebSearch } from "@/lib/openai/responses-client";
 
 const log = createModuleLogger('ExecuteVeille');
 
@@ -115,52 +116,53 @@ Réponds UNIQUEMENT avec un JSON au format :
 }
 
 /**
- * Execute web search using OpenAI Responses API with web search
+ * Execute web search using OpenAI Responses API with native web search
  */
-async function executeWebSearch(subQuery: string, model: string): Promise<SearchResult[]> {
+async function executeWebSearch(subQuery: string, model: string): Promise<{ results: SearchResult[], debugInfo: any }> {
   try {
-    // Use OpenAI's responses endpoint which supports web search
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: "Tu es un assistant de recherche. Recherche sur le web et fournis les résultats les plus pertinents avec leurs sources."
-          },
-          {
-            role: "user",
-            content: `Recherche sur le web: ${subQuery}\n\nFournis les 5 résultats les plus pertinents au format JSON:\n{\n  "results": [\n    {"title": "...", "url": "...", "snippet": "...", "relevance": 0-100}\n  ]\n}`
-          }
-        ],
-        temperature: isReasoningModel(model) ? undefined : 0.7,
-        response_format: { type: "json_object" },
-      }),
+    log.info('Executing web search', { subQuery, model });
+
+    // Use the proper Responses API with native web search
+    const response = await createResponseWithWebSearch(
+      model,
+      `Recherche sur le web pour répondre à cette question: ${subQuery}\n\nFournis une synthèse des informations trouvées avec les sources.`,
+      {
+        temperature: 0.7,
+        max_output_tokens: 2000,
+      }
+    );
+
+    log.info('Web search completed', {
+      subQuery,
+      citationsCount: response.citations.length,
+      webSearchCallsCount: response.webSearchCalls.length,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      log.error("Web search failed", errorText);
-      return [];
-    }
+    // Convert citations to SearchResult format
+    const results: SearchResult[] = response.citations.map((citation, index) => ({
+      title: citation.title || `Source ${index + 1}`,
+      url: citation.url,
+      snippet: response.outputText.substring(citation.start_index, citation.end_index),
+      relevance: 100 - (index * 10), // Prioritize earlier citations
+    }));
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
+    // Prepare debug info
+    const debugInfo = {
+      webSearchCalls: response.webSearchCalls.map(call => ({
+        id: call.id,
+        status: call.status,
+        query: call.action?.query,
+        sourcesFound: call.action?.sources?.length || 0,
+        sources: call.action?.sources?.map(s => ({ url: s.url, title: s.title })) || [],
+      })),
+      citationsCount: response.citations.length,
+      outputLength: response.outputText.length,
+    };
 
-    if (!content) {
-      return [];
-    }
-
-    const parsed = JSON.parse(content);
-    return parsed.results || [];
+    return { results, debugInfo };
   } catch (error) {
     log.error("Exception during web search", error);
-    return [];
+    return { results: [], debugInfo: { error: String(error) } };
   }
 }
 
@@ -321,7 +323,17 @@ export async function POST(request: NextRequest) {
             encoder.encode(encodeSSE("searchStart", { index, subQuery }))
           );
 
-          const searchResults = await executeWebSearch(subQuery, model);
+          const { results: searchResults, debugInfo } = await executeWebSearch(subQuery, model);
+
+          // Send debug information
+          controller.enqueue(
+            encoder.encode(encodeSSE("searchDebug", {
+              index,
+              subQuery,
+              debugInfo,
+              timestamp: new Date().toISOString(),
+            }))
+          );
 
           controller.enqueue(
             encoder.encode(encodeSSE("searchResults", { index, subQuery, resultsCount: searchResults.length }))

@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/markdown/markdown-renderer";
-import { Loader2, CheckCircle2, Search, Lightbulb, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, Search, Lightbulb, FileText, Bug, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 
 export interface VeilleEvent {
-  type: "status" | "subQueries" | "searchStart" | "searchResults" | "searchComplete" | "finalReport" | "saved" | "complete" | "error";
+  type: "status" | "subQueries" | "searchStart" | "searchResults" | "searchDebug" | "searchComplete" | "finalReport" | "saved" | "complete" | "error";
   data: any;
 }
 
@@ -16,12 +18,22 @@ export interface VeilleResultsProps {
 }
 
 export function VeilleResults({ isExecuting, events }: VeilleResultsProps) {
+  const [showDebug, setShowDebug] = useState(false);
+  const [expandedDebug, setExpandedDebug] = useState<number[]>([]);
+
   // Extract data from events
   const subQueries = events.find((e) => e.type === "subQueries")?.data.subQueries || [];
   const searchCompletions = events.filter((e) => e.type === "searchComplete");
+  const searchDebugEvents = events.filter((e) => e.type === "searchDebug");
   const finalReport = events.find((e) => e.type === "finalReport")?.data.report;
   const isComplete = events.some((e) => e.type === "complete");
   const error = events.find((e) => e.type === "error");
+
+  const toggleDebugExpand = (index: number) => {
+    setExpandedDebug(prev =>
+      prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
+    );
+  };
 
   // Current phase
   const currentStatus = events.filter((e) => e.type === "status").slice(-1)[0]?.data;
@@ -44,6 +56,21 @@ export function VeilleResults({ isExecuting, events }: VeilleResultsProps) {
 
   return (
     <div className="space-y-6">
+      {/* Debug Toggle Button */}
+      {searchDebugEvents.length > 0 && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDebug(!showDebug)}
+            className="gap-2"
+          >
+            <Bug className="h-4 w-4" />
+            {showDebug ? "Masquer" : "Afficher"} les détails techniques
+          </Button>
+        </div>
+      )}
+
       {/* Current Status */}
       {isExecuting && currentStatus && (
         <Card className="border-2 border-primary/20 bg-primary/5">
@@ -102,6 +129,109 @@ export function VeilleResults({ isExecuting, events }: VeilleResultsProps) {
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Debug Information */}
+      {showDebug && searchDebugEvents.length > 0 && (
+        <Card className="border-2 border-orange-500/20 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+              <Bug className="h-5 w-5" />
+              Détails techniques des recherches
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {searchDebugEvents.map((event, idx) => {
+              const debugInfo = event.data.debugInfo;
+              const isExpanded = expandedDebug.includes(idx);
+
+              return (
+                <div key={idx} className="border rounded-lg p-4 bg-white dark:bg-gray-900">
+                  <button
+                    onClick={() => toggleDebugExpand(idx)}
+                    className="w-full flex items-start gap-2 text-left"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 mt-1 shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 mt-1 shrink-0" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{event.data.subQuery}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {debugInfo.citationsCount || 0} citations • {debugInfo.webSearchCalls?.length || 0} recherches web
+                      </p>
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-4 space-y-3 pl-6">
+                      {/* Web Search Calls */}
+                      {debugInfo.webSearchCalls && debugInfo.webSearchCalls.length > 0 && (
+                        <div>
+                          <h5 className="text-xs font-semibold text-muted-foreground mb-2">
+                            RECHERCHES WEB EFFECTUÉES
+                          </h5>
+                          <div className="space-y-2">
+                            {debugInfo.webSearchCalls.map((call: any, callIdx: number) => (
+                              <div key={callIdx} className="bg-muted/50 rounded p-3 text-xs">
+                                <div className="flex items-center justify-between mb-2">
+                                  <Badge variant={call.status === "completed" ? "default" : "secondary"} className="text-xs">
+                                    {call.status}
+                                  </Badge>
+                                  <span className="text-muted-foreground">ID: {call.id}</span>
+                                </div>
+                                {call.query && (
+                                  <p className="font-mono text-xs mb-2">
+                                    <span className="text-muted-foreground">Query:</span> {call.query}
+                                  </p>
+                                )}
+                                {call.sources && call.sources.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-muted-foreground mb-1">Sources trouvées ({call.sourcesFound}):</p>
+                                    <ul className="space-y-1">
+                                      {call.sources.slice(0, 5).map((source: any, srcIdx: number) => (
+                                        <li key={srcIdx} className="flex items-start gap-1">
+                                          <ExternalLink className="h-3 w-3 mt-0.5 shrink-0" />
+                                          <a
+                                            href={source.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="hover:underline text-blue-600 dark:text-blue-400 break-all"
+                                          >
+                                            {source.title || source.url}
+                                          </a>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Error Info */}
+                      {debugInfo.error && (
+                        <div className="bg-destructive/10 rounded p-3">
+                          <p className="text-xs text-destructive font-mono">{debugInfo.error}</p>
+                        </div>
+                      )}
+
+                      {/* Timestamp */}
+                      {event.data.timestamp && (
+                        <p className="text-xs text-muted-foreground">
+                          Timestamp: {new Date(event.data.timestamp).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}
