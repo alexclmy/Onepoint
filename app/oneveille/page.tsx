@@ -152,6 +152,8 @@ export default function OneVeillePage() {
         throw new Error("No response body");
       }
 
+      let currentEventType = "unknown";
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -161,7 +163,7 @@ export default function OneVeillePage() {
 
         for (const line of lines) {
           if (line.startsWith("event:")) {
-            const eventType = line.substring(7).trim();
+            currentEventType = line.substring(7).trim();
             continue;
           }
 
@@ -170,12 +172,7 @@ export default function OneVeillePage() {
             if (data) {
               try {
                 const parsed = JSON.parse(data);
-                const eventIndex = lines.indexOf(line);
-                const eventType = eventIndex > 0 && lines[eventIndex - 1].startsWith("event:")
-                  ? lines[eventIndex - 1].substring(7).trim()
-                  : "unknown";
-
-                setVeilleEvents((prev) => [...prev, { type: eventType as any, data: parsed }]);
+                setVeilleEvents((prev) => [...prev, { type: currentEventType as any, data: parsed }]);
               } catch (e) {
                 console.error("Failed to parse SSE data:", e);
               }
