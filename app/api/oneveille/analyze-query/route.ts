@@ -84,6 +84,11 @@ Ta tâche est d'analyser une demande de veille et de suggérer :
 
 2. Une liste de 8-12 mots-clés pertinents pour enrichir la recherche
 
+3. 3-4 variations du sujet pour inspirer l'utilisateur avec différents angles d'approche :
+   - Chaque variation doit offrir une perspective unique ou complémentaire
+   - Garde le sujet principal mais explore différents aspects ou niveaux de détail
+   - Sois créatif et pertinent pour enrichir la réflexion
+
 ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 'Réponds au format JSON suivant (commence ta réponse par { et termine par }) :'}
 {
   "parameters": {
@@ -92,6 +97,12 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
     "focus": <nombre 0-100>
   },
   "keywords": ["mot-clé 1", "mot-clé 2", ...],
+  "variations": [
+    "Variation 1 du sujet",
+    "Variation 2 du sujet",
+    "Variation 3 du sujet",
+    "Variation 4 du sujet (optionnel)"
+  ],
   "reasoning": "Explication brève de tes choix"
 }`;
 
@@ -148,7 +159,8 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
       typeof analysis.parameters.geography !== "number" ||
       typeof analysis.parameters.temporality !== "number" ||
       typeof analysis.parameters.focus !== "number" ||
-      !Array.isArray(analysis.keywords)
+      !Array.isArray(analysis.keywords) ||
+      !Array.isArray(analysis.variations)
     ) {
       throw new Error("Invalid response structure from OpenAI");
     }
@@ -162,6 +174,7 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
         focus: Math.min(100, Math.max(0, analysis.parameters.focus)),
       },
       keywords: analysis.keywords.slice(0, 12), // Limit to 12 keywords
+      variations: analysis.variations.slice(0, 4), // Limit to 4 variations
       reasoning: analysis.reasoning || "",
     });
   } catch (error) {

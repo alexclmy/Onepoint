@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   Home,
@@ -16,6 +16,8 @@ import {
   TrendingUp,
   Package,
   Radar,
+  Menu,
+  X,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -134,65 +136,82 @@ function NavSection({ section }: { section: NavSection }) {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu when pathname changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Prevent scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-background">
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b px-6">
-        <Sparkles className="h-6 w-6 text-primary" />
-        <div className="flex flex-col">
-          <span className="text-lg font-bold">Onepoint AI</span>
-          <span className="text-xs text-muted-foreground">Consulting Tool</span>
+    <>
+      {/* Mobile Header with Hamburger */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-6 w-6 text-primary" />
+          <div className="flex flex-col">
+            <span className="text-lg font-bold">Onepoint AI</span>
+            <span className="text-xs text-muted-foreground">Consulting Tool</span>
+          </div>
         </div>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="rounded-lg p-2 hover:bg-accent"
+          aria-label="Toggle menu"
+        >
+          {isMobileMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
+        </button>
       </div>
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 px-4 py-4">
-        <nav className="space-y-6">
-          {/* Main Navigation */}
-          <div className="space-y-1">
-            {mainNavigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-white"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/50"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "flex h-screen w-64 flex-col border-r bg-background transition-transform duration-300 ease-in-out",
+          // Mobile: fixed with slide animation
+          "md:relative md:translate-x-0",
+          // Mobile closed state
+          isMobileMenuOpen ? "fixed z-50 translate-x-0" : "fixed z-50 -translate-x-full md:translate-x-0"
+        )}
+      >
+        {/* Logo */}
+        <div className="flex h-16 items-center gap-2 border-b px-6">
+          <Sparkles className="h-6 w-6 text-primary" />
+          <div className="flex flex-col">
+            <span className="text-lg font-bold">Onepoint AI</span>
+            <span className="text-xs text-muted-foreground">Consulting Tool</span>
           </div>
+        </div>
 
-          <Separator />
-
-          {/* Consulting Actions */}
-          <div>
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Actions Rapides
-            </p>
+        {/* Navigation */}
+        <ScrollArea className="flex-1 px-4 py-4">
+          <nav className="space-y-6">
+            {/* Main Navigation */}
             <div className="space-y-1">
-              <NavSection section={consultingActions} />
-              <NavSection section={productManagementActions} />
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Configuration */}
-          <div>
-            <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Configuration
-            </p>
-            <div className="space-y-1">
-              {configNavigation.map((item) => {
+              {mainNavigation.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link
@@ -211,21 +230,63 @@ export function Sidebar() {
                 );
               })}
             </div>
+
+            <Separator />
+
+            {/* Consulting Actions */}
+            <div>
+              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Actions Rapides
+              </p>
+              <div className="space-y-1">
+                <NavSection section={consultingActions} />
+                <NavSection section={productManagementActions} />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Configuration */}
+            <div>
+              <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Configuration
+              </p>
+              <div className="space-y-1">
+                {configNavigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-primary text-white"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </nav>
+        </ScrollArea>
+
+        <Separator />
+
+        {/* Footer */}
+        <div className="p-4">
+          <div className="rounded-lg bg-muted p-3">
+            <p className="text-xs text-muted-foreground">
+              Alexandre Coulmy - Onepoint
+            </p>
+            <p className="mt-1 text-xs font-medium">v0.2.0 - Beta</p>
           </div>
-        </nav>
-      </ScrollArea>
-
-      <Separator />
-
-      {/* Footer */}
-      <div className="p-4">
-        <div className="rounded-lg bg-muted p-3">
-          <p className="text-xs text-muted-foreground">
-            Propulsé par OpenAI GPT-4
-          </p>
-          <p className="mt-1 text-xs font-medium">v0.2.0 - Beta</p>
         </div>
       </div>
-    </div>
+    </>
   );
 }

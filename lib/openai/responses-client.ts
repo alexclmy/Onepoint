@@ -123,8 +123,6 @@ export interface CreateResponseOptions {
 export async function createResponse(
   options: CreateResponseOptions
 ): Promise<ResponsesAPIResult> {
-  const client = getOpenAIClient();
-
   const isReasoning = isReasoningModel(options.model);
 
   log.debug('Creating Responses API call', {
@@ -152,20 +150,36 @@ export async function createResponse(
       apiParams.temperature = options.temperature;
     }
 
-    // Call the Responses API
-    const response = await (client as any).responses.create(apiParams);
+    // Call the Responses API directly using fetch
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(apiParams),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.error('Responses API call failed', { status: response.status, error: errorText });
+      throw new Error(`Responses API error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
 
     log.debug('Responses API call completed', {
-      outputItemsCount: response.output?.length || 0,
+      outputItemsCount: data.output?.length || 0,
+      hasOutputText: !!data.output_text,
     });
 
     // Extract output items
     const webSearchCalls: WebSearchCall[] = [];
-    let outputText = "";
+    let outputText = data.output_text || "";
     const citations: URLCitation[] = [];
 
-    if (Array.isArray(response.output)) {
-      for (const item of response.output) {
+    if (Array.isArray(data.output)) {
+      for (const item of data.output) {
         if (item.type === "web_search_call") {
           webSearchCalls.push({
             id: item.id,
@@ -183,7 +197,9 @@ export async function createResponse(
           // Extract text and citations
           for (const content of item.content || []) {
             if (content.type === "output_text") {
-              outputText += content.text;
+              if (!outputText) {
+                outputText += content.text;
+              }
 
               if (content.annotations) {
                 citations.push(...content.annotations.filter((a: any) => a.type === "url_citation"));
@@ -204,7 +220,7 @@ export async function createResponse(
       outputText,
       citations,
       webSearchCalls,
-      fullResponse: response,
+      fullResponse: data,
     };
   } catch (error: any) {
     log.error('Responses API call failed', error);
@@ -231,6 +247,7 @@ export async function createResponseWithWebSearch(
     temperature?: number;
     max_output_tokens?: number;
     allowed_domains?: string[];
+    forceWebSearch?: boolean;
   }
 ): Promise<ResponsesAPIResult> {
   return createResponse({
@@ -244,7 +261,7 @@ export async function createResponseWithWebSearch(
           : undefined,
       },
     ],
-    tool_choice: "auto",
+    tool_choice: options?.forceWebSearch !== false ? "required" : "auto",
     reasoning: options?.reasoning,
     temperature: options?.temperature,
     max_output_tokens: options?.max_output_tokens,

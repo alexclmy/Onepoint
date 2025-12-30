@@ -196,12 +196,12 @@ export default function HomePage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className="h-full overflow-y-auto p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-6 md:space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Nouvelle Analyse</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">Nouvelle Analyse</h1>
+          <p className="mt-2 text-sm md:text-base text-muted-foreground">
             Lancez une analyse stratégique multi-agents en définissant votre demande
             et en sélectionnant les actions et experts pertinents.
           </p>
@@ -240,7 +240,7 @@ export default function HomePage() {
                 />
                 <label
                   htmlFor="user-involved"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-xs md:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   M'impliquer dans les échanges (répondre aux questions des agents)
                 </label>
@@ -254,7 +254,7 @@ export default function HomePage() {
                 />
                 <label
                   htmlFor="use-web-search"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-xs md:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   🌐 Activer la recherche web (données récentes et actualités)
                 </label>
@@ -296,12 +296,13 @@ export default function HomePage() {
         {/* Timeline Section */}
         {(timeline.length > 0 || isAnalyzing) && (
           <div className="space-y-4" ref={resultsRef}>
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Timeline des Contributions</h2>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <h2 className="text-xl md:text-2xl font-bold">Timeline des Contributions</h2>
               {analysisComplete && (
-                <Button onClick={handleDownloadPDF} variant="outline">
+                <Button onClick={handleDownloadPDF} variant="outline" className="w-full sm:w-auto">
                   <Download className="mr-2 h-4 w-4" />
-                  Télécharger PDF
+                  <span className="hidden sm:inline">Télécharger PDF</span>
+                  <span className="sm:hidden">PDF</span>
                 </Button>
               )}
             </div>

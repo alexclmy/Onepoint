@@ -34,6 +34,10 @@ export default function OneVeillePage() {
   const [suggestedKeywords, setSuggestedKeywords] = useState<string[]>([]);
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
 
+  // Subject variations
+  const [suggestedVariations, setSuggestedVariations] = useState<string[]>([]);
+  const [finalSubject, setFinalSubject] = useState("");
+
   // Company
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
@@ -48,12 +52,15 @@ export default function OneVeillePage() {
     loadCompanies();
   }, []);
 
-  // Auto-scroll to results when veille starts
+  // Auto-scroll to results when veille starts or when new events arrive
   useEffect(() => {
     if (veilleStarted && resultsRef.current) {
-      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      // Small delay to ensure the results section has rendered
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     }
-  }, [veilleStarted]);
+  }, [veilleStarted, veilleEvents.length]);
 
   const loadCompanies = async () => {
     try {
@@ -105,6 +112,13 @@ export default function OneVeillePage() {
 
       // Set suggested keywords
       setSuggestedKeywords(data.keywords);
+
+      // Set suggested variations
+      setSuggestedVariations(data.variations || []);
+
+      // Initialize final subject with original query
+      setFinalSubject(query);
+
       setHasAnalyzed(true);
     } catch (error) {
       console.error("Erreur:", error);
@@ -134,7 +148,7 @@ export default function OneVeillePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query,
+          query: finalSubject, // Use the final (possibly edited) subject
           parameters: params,
           keywords: selectedKeywords,
           companyId: selectedCompanyId,
@@ -152,6 +166,8 @@ export default function OneVeillePage() {
         throw new Error("No response body");
       }
 
+      let currentEventType = "unknown";
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -161,7 +177,7 @@ export default function OneVeillePage() {
 
         for (const line of lines) {
           if (line.startsWith("event:")) {
-            const eventType = line.substring(7).trim();
+            currentEventType = line.substring(7).trim();
             continue;
           }
 
@@ -170,12 +186,7 @@ export default function OneVeillePage() {
             if (data) {
               try {
                 const parsed = JSON.parse(data);
-                const eventIndex = lines.indexOf(line);
-                const eventType = eventIndex > 0 && lines[eventIndex - 1].startsWith("event:")
-                  ? lines[eventIndex - 1].substring(7).trim()
-                  : "unknown";
-
-                setVeilleEvents((prev) => [...prev, { type: eventType as any, data: parsed }]);
+                setVeilleEvents((prev) => [...prev, { type: currentEventType as any, data: parsed }]);
               } catch (e) {
                 console.error("Failed to parse SSE data:", e);
               }
@@ -373,12 +384,66 @@ export default function OneVeillePage() {
               </CardContent>
             </Card>
 
-            {/* Step 4: Company Selection (Optional) */}
+            {/* Step 4: Subject Variations */}
+            {suggestedVariations.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Variations du sujet suggérées</CardTitle>
+                  <CardDescription>
+                    Sélectionnez une variation pour explorer différents angles d'approche (optionnel)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {suggestedVariations.map((variation, index) => {
+                      const isSelected = finalSubject === variation;
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setFinalSubject(variation)}
+                          className={`w-full text-left rounded-lg p-4 text-sm transition-all border-2 ${
+                            isSelected
+                              ? "border-primary bg-primary/5 shadow-sm"
+                              : "border-border bg-background hover:border-primary/50 hover:bg-accent"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Sparkles className={`h-4 w-4 mt-0.5 flex-shrink-0 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            <span className={isSelected ? "font-medium" : ""}>{variation}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Step 5: Company Selection (Optional) */}
             <CompanySelector
               companies={companies}
               selectedCompanyId={selectedCompanyId}
               onChange={setSelectedCompanyId}
             />
+
+            {/* Step 6: Final Subject Edit */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Sujet final de la veille</CardTitle>
+                <CardDescription>
+                  Vous pouvez affiner ou modifier le sujet avant de lancer la veille
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={finalSubject}
+                  onChange={(e) => setFinalSubject(e.target.value)}
+                  placeholder="Modifiez le sujet si nécessaire..."
+                  rows={3}
+                  className="text-base resize-none"
+                />
+              </CardContent>
+            </Card>
 
             {/* Launch Button */}
             <Card className="border-2 border-primary/20 bg-primary/5">
@@ -387,7 +452,7 @@ export default function OneVeillePage() {
                   onClick={handleLaunchVeille}
                   size="lg"
                   className="w-full"
-                  disabled={selectedKeywords.length === 0 || isExecutingVeille}
+                  disabled={selectedKeywords.length === 0 || !finalSubject.trim() || isExecutingVeille}
                 >
                   {isExecutingVeille ? (
                     <>
@@ -401,10 +466,19 @@ export default function OneVeillePage() {
                     </>
                   )}
                 </Button>
-                {selectedKeywords.length === 0 && !isExecutingVeille && (
-                  <p className="mt-2 text-center text-sm text-muted-foreground">
-                    Veuillez sélectionner au moins 1 mot-clé pour continuer
-                  </p>
+                {!isExecutingVeille && (
+                  <>
+                    {selectedKeywords.length === 0 && (
+                      <p className="mt-2 text-center text-sm text-muted-foreground">
+                        Veuillez sélectionner au moins 1 mot-clé pour continuer
+                      </p>
+                    )}
+                    {!finalSubject.trim() && selectedKeywords.length > 0 && (
+                      <p className="mt-2 text-center text-sm text-muted-foreground">
+                        Veuillez renseigner le sujet final de la veille
+                      </p>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
