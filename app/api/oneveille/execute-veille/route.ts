@@ -143,15 +143,27 @@ Réponds UNIQUEMENT avec un JSON au format (EXACTEMENT 4 sous-questions) :
 
 /**
  * Execute web search using OpenAI Responses API with native web search
+ * Includes a 120-second timeout to prevent hanging indefinitely
  */
 async function executeWebSearch(subQuery: string, model: string): Promise<{ results: SearchResult[], synthesis: string, debugInfo: any }> {
-  try {
-    log.info('Executing web search', { subQuery, model });
+  const SEARCH_TIMEOUT_MS = 120000; // 120 seconds timeout per search
 
-    // Use the proper Responses API with native web search
-    const response = await createResponseWithWebSearch(
-      model,
-      `Tu DOIS effectuer une recherche web et répondre à cette question basée sur les résultats trouvés.
+  // Create a promise that rejects after timeout
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Search timed out after ${SEARCH_TIMEOUT_MS / 1000} seconds`));
+    }, SEARCH_TIMEOUT_MS);
+  });
+
+  // Create the actual search promise
+  const searchPromise = (async () => {
+    try {
+      log.info('Executing web search', { subQuery, model });
+
+      // Use the proper Responses API with native web search
+      const response = await createResponseWithWebSearch(
+        model,
+        `Tu DOIS effectuer une recherche web et répondre à cette question basée sur les résultats trouvés.
 
 Question: ${subQuery}
 
@@ -170,85 +182,101 @@ INSTRUCTIONS IMPORTANTES:
 IMPORTANT: Même si les résultats ne sont pas parfaits, fournis une synthèse avec les sources trouvées plutôt que de dire "aucun résultat".
 
 Réponds maintenant avec une synthèse basée sur ta recherche web:`,
-      {
-        temperature: 0.2,
-        max_output_tokens: 4000,
-        forceWebSearch: true,
-      }
-    );
+        {
+          temperature: 0.2,
+          max_output_tokens: 4000,
+          forceWebSearch: true,
+        }
+      );
 
-    log.info('Web search completed', {
-      subQuery,
-      citationsCount: response.citations.length,
-      webSearchCallsCount: response.webSearchCalls.length,
-      outputTextLength: response.outputText.length,
-    });
+      log.info('Web search completed', {
+        subQuery,
+        citationsCount: response.citations.length,
+        webSearchCallsCount: response.webSearchCalls.length,
+        outputTextLength: response.outputText.length,
+      });
 
-    // Build results from both citations AND web search sources
-    // Use citations if available, otherwise fallback to sources from web search calls
-    let results: SearchResult[] = [];
+      // Build results from both citations AND web search sources
+      // Use citations if available, otherwise fallback to sources from web search calls
+      let results: SearchResult[] = [];
 
-    if (response.citations.length > 0) {
-      // Use citations from the text
-      results = response.citations.map((citation, index) => ({
-        title: citation.title || `Source ${index + 1}`,
-        url: citation.url,
-        snippet: response.outputText.substring(
-          citation.start_index,
-          Math.min(citation.end_index, response.outputText.length)
-        ),
-        relevance: 100 - (index * 10),
-      }));
-    } else {
-      // Fallback: extract sources from web search calls
-      const allSources = response.webSearchCalls
-        .flatMap(call => call.action?.sources || [])
-        .slice(0, 10); // Limit to top 10 sources
-
-      results = allSources.map((source, index) => ({
-        title: source.title || `Source ${index + 1}`,
-        url: source.url,
-        snippet: source.title || '',
-        relevance: 100 - (index * 10),
-      }));
-    }
-
-    // Prepare debug info
-    const debugInfo = {
-      webSearchCalls: response.webSearchCalls.map(call => ({
-        id: call.id,
-        status: call.status,
-        query: call.action?.query,
-        sourcesFound: call.action?.sources?.length || 0,
-        sources: call.action?.sources?.map(s => ({ url: s.url, title: s.title })) || [],
-      })),
-      citationsCount: response.citations.length,
-      outputLength: response.outputText.length,
-    };
-
-    // Return the output text as synthesis (already includes web search results)
-    // If we have sources but no output text, create a basic summary
-    let synthesis = response.outputText;
-    if (!synthesis || synthesis.trim().length === 0) {
-      if (results.length > 0) {
-        synthesis = `${results.length} source(s) trouvée(s) sur cette recherche. Consultez les détails techniques pour voir les URLs.`;
+      if (response.citations.length > 0) {
+        // Use citations from the text
+        results = response.citations.map((citation, index) => ({
+          title: citation.title || `Source ${index + 1}`,
+          url: citation.url,
+          snippet: response.outputText.substring(
+            citation.start_index,
+            Math.min(citation.end_index, response.outputText.length)
+          ),
+          relevance: 100 - (index * 10),
+        }));
       } else {
-        synthesis = "Aucun résultat pertinent trouvé pour cette recherche. Le sujet pourrait être trop récent ou trop spécifique.";
-      }
-    }
+        // Fallback: extract sources from web search calls
+        const allSources = response.webSearchCalls
+          .flatMap(call => call.action?.sources || [])
+          .slice(0, 10); // Limit to top 10 sources
 
-    return {
-      results,
-      synthesis,
-      debugInfo
-    };
-  } catch (error) {
-    log.error("Exception during web search", error);
-    return {
-      results: [],
-      synthesis: "Erreur lors de la recherche.",
-      debugInfo: { error: String(error) }
-    };
+        results = allSources.map((source, index) => ({
+          title: source.title || `Source ${index + 1}`,
+          url: source.url,
+          snippet: source.title || '',
+          relevance: 100 - (index * 10),
+        }));
+      }
+
+      // Prepare debug info
+      const debugInfo = {
+        webSearchCalls: response.webSearchCalls.map(call => ({
+          id: call.id,
+          status: call.status,
+          query: call.action?.query,
+          sourcesFound: call.action?.sources?.length || 0,
+          sources: call.action?.sources?.map(s => ({ url: s.url, title: s.title })) || [],
+        })),
+        citationsCount: response.citations.length,
+        outputLength: response.outputText.length,
+      };
+
+      // Return the output text as synthesis (already includes web search results)
+      // If we have sources but no output text, create a basic summary
+      let synthesis = response.outputText;
+      if (!synthesis || synthesis.trim().length === 0) {
+        if (results.length > 0) {
+          synthesis = `${results.length} source(s) trouvée(s) sur cette recherche. Consultez les détails techniques pour voir les URLs.`;
+        } else {
+          synthesis = "Aucun résultat pertinent trouvé pour cette recherche. Le sujet pourrait être trop récent ou trop spécifique.";
+        }
+      }
+
+      return {
+        results,
+        synthesis,
+        debugInfo
+      };
+    } catch (error) {
+      log.error("Exception during web search", error);
+      return {
+        results: [],
+        synthesis: "Erreur lors de la recherche.",
+        debugInfo: { error: String(error) }
+      };
+    }
+  })();
+
+  // Race between search and timeout
+  try {
+    return await Promise.race([searchPromise, timeoutPromise]);
+  } catch (error: any) {
+    if (error.message.includes('timed out')) {
+      log.warn('Search timed out', { subQuery, timeout: SEARCH_TIMEOUT_MS });
+      return {
+        results: [],
+        synthesis: `La recherche a dépassé le temps limite de ${SEARCH_TIMEOUT_MS / 1000} secondes. Cette question était peut-être trop complexe ou le web search a rencontré des difficultés. Essayez de reformuler la question de manière plus simple ou divisez-la en plusieurs questions distinctes.`,
+        debugInfo: { error: 'Timeout', timeoutMs: SEARCH_TIMEOUT_MS }
+      };
+    }
+    throw error;
   }
 }
 
