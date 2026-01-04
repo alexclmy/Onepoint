@@ -23,7 +23,16 @@ export function VeilleResults({ isExecuting, events }: VeilleResultsProps) {
 
   // Extract data from events
   const subQueries = events.find((e) => e.type === "subQueries")?.data.subQueries || [];
-  const searchCompletions = events.filter((e) => e.type === "searchComplete");
+
+  // Deduplicate search completions by index to avoid double counting
+  const searchCompletionsMap = new Map<number, any>();
+  events.filter((e) => e.type === "searchComplete").forEach((e) => {
+    if (e.data?.index !== undefined) {
+      searchCompletionsMap.set(e.data.index, e);
+    }
+  });
+  const searchCompletions = Array.from(searchCompletionsMap.values());
+
   const searchDebugEvents = events.filter((e) => e.type === "searchDebug");
   const finalReport = events.find((e) => e.type === "finalReport")?.data.report;
   const isComplete = events.some((e) => e.type === "complete");
@@ -121,7 +130,10 @@ export function VeilleResults({ isExecuting, events }: VeilleResultsProps) {
                       <p className="text-sm font-medium">{query}</p>
                       {searchComplete && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          {searchComplete.data.resultsCount || 0} résultats trouvés
+                          {searchComplete.data.citationsCount || 0} citation{(searchComplete.data.citationsCount || 0) > 1 ? 's' : ''}
+                          {searchComplete.data.sourcesCount && searchComplete.data.sourcesCount > 0 && (
+                            <> • {searchComplete.data.sourcesCount} source{searchComplete.data.sourcesCount > 1 ? 's' : ''} web</>
+                          )}
                         </p>
                       )}
                     </div>

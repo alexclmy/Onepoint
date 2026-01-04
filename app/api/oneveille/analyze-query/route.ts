@@ -77,24 +77,28 @@ export async function POST(request: NextRequest) {
     const systemPrompt = `Tu es un assistant expert en veille stratégique.
 
 Ta tâche est d'analyser une demande de veille et de suggérer :
-1. Les paramètres optimaux sur 3 axes (valeurs de 0 à 100) :
-   - geography (0 = très local, 50 = national, 100 = global/international)
-   - temporality (0 = dernière semaine, 25 = dernier mois, 50 = 3 mois, 75 = 6 mois, 100 = historique complet)
-   - focus (0 = purement business/marché, 50 = équilibré, 100 = purement technique)
+1. Les paramètres optimaux sur 3 axes (valeurs de 1 à 10) :
+   - geography (1 = très local/ville, 5 = national, 10 = global/international)
+   - temporality (1 = dernière semaine, 3 = dernier mois, 5 = 3 mois, 7 = 6 mois, 10 = historique complet)
+   - focus (1 = purement business/marché, 5 = équilibré, 10 = purement technique/innovation)
 
 2. Une liste de 8-12 mots-clés pertinents pour enrichir la recherche
+   - Identifie les termes clés et concepts importants liés au sujet
+   - Inclus des termes généraux et spécifiques, en français et anglais si pertinent
+   - Pense aux synonymes et termes connexes couramment utilisés
 
-3. 3-4 variations du sujet pour inspirer l'utilisateur avec différents angles d'approche :
-   - Chaque variation doit offrir une perspective unique ou complémentaire
-   - Garde le sujet principal mais explore différents aspects ou niveaux de détail
+3. 3-4 variations du sujet pour inspirer l'utilisateur avec différents angles d'approche
+   - Propose des angles d'approche cohérents et complémentaires
+   - Chaque variation doit offrir une perspective unique
+   - Garde le sujet principal mais explore différents aspects (business, technique, marché, innovation, etc.)
    - Sois créatif et pertinent pour enrichir la réflexion
 
 ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 'Réponds au format JSON suivant (commence ta réponse par { et termine par }) :'}
 {
   "parameters": {
-    "geography": <nombre 0-100>,
-    "temporality": <nombre 0-100>,
-    "focus": <nombre 0-100>
+    "geography": <nombre 1-10>,
+    "temporality": <nombre 1-10>,
+    "focus": <nombre 1-10>
   },
   "keywords": ["mot-clé 1", "mot-clé 2", ...],
   "variations": [
@@ -134,6 +138,8 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
       completionOptions.response_format = { type: "json_object" };
     }
 
+    console.log("🔍 [ONEVEILLE] Calling Chat Completions API for query analysis...");
+
     const completion = await openai.chat.completions.create(completionOptions);
 
     const result = completion.choices[0].message.content;
@@ -165,13 +171,20 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
       throw new Error("Invalid response structure from OpenAI");
     }
 
+    // Convert from 1-10 scale to 0-100 scale for frontend sliders
+    // Formula: (value - 1) * (100 / 9) to map [1,10] to [0,100]
+    const convertToSliderScale = (value: number): number => {
+      const clamped = Math.min(10, Math.max(1, value));
+      return Math.round((clamped - 1) * (100 / 9));
+    };
+
     console.log("✅ [ONEVEILLE] Analysis completed successfully");
 
     return NextResponse.json({
       parameters: {
-        geography: Math.min(100, Math.max(0, analysis.parameters.geography)),
-        temporality: Math.min(100, Math.max(0, analysis.parameters.temporality)),
-        focus: Math.min(100, Math.max(0, analysis.parameters.focus)),
+        geography: convertToSliderScale(analysis.parameters.geography),
+        temporality: convertToSliderScale(analysis.parameters.temporality),
+        focus: convertToSliderScale(analysis.parameters.focus),
       },
       keywords: analysis.keywords.slice(0, 12), // Limit to 12 keywords
       variations: analysis.variations.slice(0, 4), // Limit to 4 variations

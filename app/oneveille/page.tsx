@@ -166,30 +166,49 @@ export default function OneVeillePage() {
         throw new Error("No response body");
       }
 
-      let currentEventType = "unknown";
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          // If there's any remaining data in buffer, try to process it
+          if (buffer.trim()) {
+            console.warn("Stream ended with incomplete buffer:", buffer);
+          }
+          break;
+        }
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
 
-        for (const line of lines) {
-          if (line.startsWith("event:")) {
-            currentEventType = line.substring(7).trim();
-            continue;
+        // Process complete messages (separated by \n\n)
+        const parts = buffer.split("\n\n");
+
+        // Keep the last incomplete part in the buffer
+        buffer = parts.pop() || "";
+
+        // Process each complete part
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          const lines = part.split("\n");
+          let currentEventType = "unknown";
+          let eventData = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event:")) {
+              currentEventType = line.substring(7).trim();
+            } else if (line.startsWith("data:")) {
+              eventData = line.substring(6).trim();
+            }
           }
 
-          if (line.startsWith("data:")) {
-            const data = line.substring(6).trim();
-            if (data) {
-              try {
-                const parsed = JSON.parse(data);
-                setVeilleEvents((prev) => [...prev, { type: currentEventType as any, data: parsed }]);
-              } catch (e) {
-                console.error("Failed to parse SSE data:", e);
-              }
+          if (eventData) {
+            try {
+              const parsed = JSON.parse(eventData);
+              setVeilleEvents((prev) => [...prev, { type: currentEventType as any, data: parsed }]);
+            } catch (e) {
+              console.error("Failed to parse SSE data:", e, "Event type:", currentEventType, "Data:", eventData.substring(0, 100));
             }
           }
         }

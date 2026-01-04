@@ -77,7 +77,16 @@ function encodeSSE(event: string, data: any): string {
  */
 async function decompose
 (query: string, params: VeilleRequest["parameters"], keywords: string[], model: string): Promise<string[]> {
-  const systemPrompt = `Tu es un expert en recherche stratégique. Ta tâche est de décomposer une question en 4-6 sous-questions RÉALISTES et ACCESSIBLES pour une recherche web.
+  // Get current date context for temporal awareness
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.toLocaleString('fr-FR', { month: 'long' });
+
+  const systemPrompt = `Tu es un expert en recherche stratégique. Ta tâche est de décomposer une question en EXACTEMENT 4 sous-questions RÉALISTES et ACCESSIBLES pour une recherche web.
+
+CONTEXTE TEMPOREL IMPORTANT :
+- Nous sommes en ${currentMonth} ${currentYear}
+- Pour des sujets récents, utilise des termes comme "récemment", "derniers mois", "tendances actuelles" plutôt que des années spécifiques
 
 IMPORTANT : Les sous-questions doivent être:
 - Formulées de manière à ce qu'on puisse trouver des réponses sur le web (articles, blogs, médias, sites spécialisés)
@@ -93,18 +102,19 @@ Contexte des paramètres :
 Mots-clés prioritaires: ${keywords.join(", ")}
 
 Exemples de BONNES sous-questions (accessibles web):
-- "Quelles sont les principales innovations dans [domaine] en [période]?"
-- "Quels sont les acteurs clés et tendances de [sujet]?"
-- "Quels articles de presse ou analyses ont parlé de [sujet] récemment?"
+- "Quelles sont les principales innovations dans [domaine] récemment ?"
+- "Quels acteurs clés dominent le marché de [sujet] actuellement ?"
+- "Quels articles de presse ou analyses ont parlé de [sujet] récemment ?"
+- "Quelles tendances émergentes dans [domaine] sont documentées ?"
 
 Exemples de MAUVAISES sous-questions (irréalistes):
-- "Liste exhaustive de tous les papiers sur arXiv en décembre 2025" ❌
+- "Liste exhaustive de tous les papiers sur arXiv en ${currentMonth} ${currentYear}" ❌
 - "Tous les repos GitHub avec étoiles, forks, dates de commit" ❌
 - "Chiffres comparatifs complets sur tous les benchmarks" ❌
 
-Réponds UNIQUEMENT avec un JSON au format :
+Réponds UNIQUEMENT avec un JSON au format (EXACTEMENT 4 sous-questions) :
 {
-  "subQueries": ["sous-question 1", "sous-question 2", ...]
+  "subQueries": ["sous-question 1", "sous-question 2", "sous-question 3", "sous-question 4"]
 }`;
 
   const completionOptions: OpenAI.Chat.ChatCompletionCreateParams = {
@@ -133,106 +143,140 @@ Réponds UNIQUEMENT avec un JSON au format :
 
 /**
  * Execute web search using OpenAI Responses API with native web search
+ * Includes a 120-second timeout to prevent hanging indefinitely
  */
 async function executeWebSearch(subQuery: string, model: string): Promise<{ results: SearchResult[], synthesis: string, debugInfo: any }> {
-  try {
-    log.info('Executing web search', { subQuery, model });
+  const SEARCH_TIMEOUT_MS = 120000; // 120 seconds timeout per search
 
-    // Use the proper Responses API with native web search
-    const response = await createResponseWithWebSearch(
-      model,
-      `Tu DOIS effectuer une recherche web et répondre à cette question basée sur les résultats trouvés.
+  // Create a promise that rejects after timeout
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Search timed out after ${SEARCH_TIMEOUT_MS / 1000} seconds`));
+    }, SEARCH_TIMEOUT_MS);
+  });
+
+  // Create the actual search promise
+  const searchPromise = (async () => {
+    try {
+      log.info('Executing web search', { subQuery, model });
+
+      // Use the proper Responses API with native web search
+      const response = await createResponseWithWebSearch(
+        model,
+        `Tu DOIS effectuer une recherche web et répondre à cette question basée sur les résultats trouvés.
 
 Question: ${subQuery}
 
 INSTRUCTIONS IMPORTANTES:
-1. Effectue une recherche web sur cette question (utilise le web search tool)
-2. Synthétise les informations trouvées en 2-4 paragraphes concis
-3. Cite les sources avec [titre](url)
-4. Si tu ne trouves PAS de résultats pertinents, dis-le clairement et explique pourquoi (sujet trop récent, trop spécifique, etc.)
-5. NE POSE JAMAIS de questions de clarification - réponds avec ce que tu trouves
-6. Concentre-toi sur les informations les plus récentes et pertinentes
+1. Effectue une recherche web approfondie sur cette question (utilise le web search tool)
+2. Explore PLUSIEURS sources différentes (articles, blogs, sites d'actualité, forums spécialisés)
+3. Synthétise les informations trouvées en 2-4 paragraphes concis
+4. Cite TOUTES les sources pertinentes avec le format [titre](url)
+5. Si les résultats sont limités ou peu pertinents :
+   - Mentionne quand même les sources que tu as trouvées
+   - Explique pourquoi il y a peu de résultats (sujet trop récent, trop spécifique, manque de données publiques, etc.)
+   - Suggère des pistes alternatives ou des informations connexes trouvées
+6. NE POSE JAMAIS de questions de clarification - réponds avec ce que tu trouves
+7. Concentre-toi sur les informations les plus récentes et pertinentes disponibles
+
+IMPORTANT: Même si les résultats ne sont pas parfaits, fournis une synthèse avec les sources trouvées plutôt que de dire "aucun résultat".
 
 Réponds maintenant avec une synthèse basée sur ta recherche web:`,
-      {
-        temperature: 0.7,
-        max_output_tokens: 2500,
-        forceWebSearch: true,
-      }
-    );
+        {
+          temperature: 0.2,
+          max_output_tokens: 4000,
+          forceWebSearch: true,
+        }
+      );
 
-    log.info('Web search completed', {
-      subQuery,
-      citationsCount: response.citations.length,
-      webSearchCallsCount: response.webSearchCalls.length,
-      outputTextLength: response.outputText.length,
-    });
+      log.info('Web search completed', {
+        subQuery,
+        citationsCount: response.citations.length,
+        webSearchCallsCount: response.webSearchCalls.length,
+        outputTextLength: response.outputText.length,
+      });
 
-    // Build results from both citations AND web search sources
-    // Use citations if available, otherwise fallback to sources from web search calls
-    let results: SearchResult[] = [];
+      // Build results from both citations AND web search sources
+      // Use citations if available, otherwise fallback to sources from web search calls
+      let results: SearchResult[] = [];
 
-    if (response.citations.length > 0) {
-      // Use citations from the text
-      results = response.citations.map((citation, index) => ({
-        title: citation.title || `Source ${index + 1}`,
-        url: citation.url,
-        snippet: response.outputText.substring(
-          citation.start_index,
-          Math.min(citation.end_index, response.outputText.length)
-        ),
-        relevance: 100 - (index * 10),
-      }));
-    } else {
-      // Fallback: extract sources from web search calls
-      const allSources = response.webSearchCalls
-        .flatMap(call => call.action?.sources || [])
-        .slice(0, 10); // Limit to top 10 sources
-
-      results = allSources.map((source, index) => ({
-        title: source.title || `Source ${index + 1}`,
-        url: source.url,
-        snippet: source.title || '',
-        relevance: 100 - (index * 10),
-      }));
-    }
-
-    // Prepare debug info
-    const debugInfo = {
-      webSearchCalls: response.webSearchCalls.map(call => ({
-        id: call.id,
-        status: call.status,
-        query: call.action?.query,
-        sourcesFound: call.action?.sources?.length || 0,
-        sources: call.action?.sources?.map(s => ({ url: s.url, title: s.title })) || [],
-      })),
-      citationsCount: response.citations.length,
-      outputLength: response.outputText.length,
-    };
-
-    // Return the output text as synthesis (already includes web search results)
-    // If we have sources but no output text, create a basic summary
-    let synthesis = response.outputText;
-    if (!synthesis || synthesis.trim().length === 0) {
-      if (results.length > 0) {
-        synthesis = `${results.length} source(s) trouvée(s) sur cette recherche. Consultez les détails techniques pour voir les URLs.`;
+      if (response.citations.length > 0) {
+        // Use citations from the text
+        results = response.citations.map((citation, index) => ({
+          title: citation.title || `Source ${index + 1}`,
+          url: citation.url,
+          snippet: response.outputText.substring(
+            citation.start_index,
+            Math.min(citation.end_index, response.outputText.length)
+          ),
+          relevance: 100 - (index * 10),
+        }));
       } else {
-        synthesis = "Aucun résultat pertinent trouvé pour cette recherche. Le sujet pourrait être trop récent ou trop spécifique.";
-      }
-    }
+        // Fallback: extract sources from web search calls
+        const allSources = response.webSearchCalls
+          .flatMap(call => call.action?.sources || [])
+          .slice(0, 10); // Limit to top 10 sources
 
-    return {
-      results,
-      synthesis,
-      debugInfo
-    };
-  } catch (error) {
-    log.error("Exception during web search", error);
-    return {
-      results: [],
-      synthesis: "Erreur lors de la recherche.",
-      debugInfo: { error: String(error) }
-    };
+        results = allSources.map((source, index) => ({
+          title: source.title || `Source ${index + 1}`,
+          url: source.url,
+          snippet: source.title || '',
+          relevance: 100 - (index * 10),
+        }));
+      }
+
+      // Prepare debug info
+      const debugInfo = {
+        webSearchCalls: response.webSearchCalls.map(call => ({
+          id: call.id,
+          status: call.status,
+          query: call.action?.query,
+          sourcesFound: call.action?.sources?.length || 0,
+          sources: call.action?.sources?.map(s => ({ url: s.url, title: s.title })) || [],
+        })),
+        citationsCount: response.citations.length,
+        outputLength: response.outputText.length,
+      };
+
+      // Return the output text as synthesis (already includes web search results)
+      // If we have sources but no output text, create a basic summary
+      let synthesis = response.outputText;
+      if (!synthesis || synthesis.trim().length === 0) {
+        if (results.length > 0) {
+          synthesis = `${results.length} source(s) trouvée(s) sur cette recherche. Consultez les détails techniques pour voir les URLs.`;
+        } else {
+          synthesis = "Aucun résultat pertinent trouvé pour cette recherche. Le sujet pourrait être trop récent ou trop spécifique.";
+        }
+      }
+
+      return {
+        results,
+        synthesis,
+        debugInfo
+      };
+    } catch (error) {
+      log.error("Exception during web search", error);
+      return {
+        results: [],
+        synthesis: "Erreur lors de la recherche.",
+        debugInfo: { error: String(error) }
+      };
+    }
+  })();
+
+  // Race between search and timeout
+  try {
+    return await Promise.race([searchPromise, timeoutPromise]);
+  } catch (error: any) {
+    if (error.message.includes('timed out')) {
+      log.warn('Search timed out', { subQuery, timeout: SEARCH_TIMEOUT_MS });
+      return {
+        results: [],
+        synthesis: `La recherche a dépassé le temps limite de ${SEARCH_TIMEOUT_MS / 1000} secondes. Cette question était peut-être trop complexe ou le web search a rencontré des difficultés. Essayez de reformuler la question de manière plus simple ou divisez-la en plusieurs questions distinctes.`,
+        debugInfo: { error: 'Timeout', timeoutMs: SEARCH_TIMEOUT_MS }
+      };
+    }
+    throw error;
   }
 }
 
@@ -267,14 +311,17 @@ Format attendu (Markdown) :
 ## 🔍 Analyse Détaillée
 [Analyse approfondie des thèmes trouvés, même si limitée]
 
-## 💡 Recommandations Stratégiques
-1. [Recommandation basée sur les résultats]
-2. [Axes à approfondir si données manquantes]
-
 ## 📚 Sources Clés
-[Liste des sources principales trouvées]
+[Liste des sources principales trouvées avec leurs URLs]
 
-Si des recherches n'ont pas donné de résultats, indique-le clairement et suggère des pistes alternatives.`;
+## 🚀 Axes d'Exploration et d'Approfondissement
+[Suggère 3-5 axes ou pistes à explorer pour aller plus loin sur ce sujet]
+- Axe 1 : [Domaine ou angle spécifique à creuser]
+- Axe 2 : [Question connexe ou aspect complémentaire]
+- Axe 3 : [Tendance émergente à surveiller]
+- Axe 4 : [Données manquantes qui mériteraient une veille dédiée]
+
+Si des recherches n'ont pas donné de résultats, indique-le clairement et intègre ces manques dans les axes d'approfondissement.`;
 
   const resultsContext = results
     .map((r, i) => `\n### Recherche ${i + 1}: ${r.subQuery}\n${r.synthesis}`)
@@ -421,8 +468,19 @@ export async function POST(request: NextRequest) {
           );
 
           // synthesis is already provided by the Responses API with web search
+          // Include both citations count and sources count for better visibility
+          const citationsCount = searchResults.length;
+          const sourcesCount = debugInfo.webSearchCalls.reduce((acc: number, call: any) => acc + (call.sourcesFound || 0), 0);
+
           controller.enqueue(
-            encoder.encode(encodeSSE("searchComplete", { index, subQuery, synthesis }))
+            encoder.encode(encodeSSE("searchComplete", {
+              index,
+              subQuery,
+              synthesis,
+              resultsCount: searchResults.length,
+              citationsCount,
+              sourcesCount,
+            }))
           );
 
           return {
