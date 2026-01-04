@@ -77,13 +77,25 @@ function encodeSSE(event: string, data: any): string {
  */
 async function decompose
 (query: string, params: VeilleRequest["parameters"], keywords: string[], model: string): Promise<string[]> {
+  // Get current date context for temporal awareness
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.toLocaleString('fr-FR', { month: 'long' });
+
   const systemPrompt = `Tu es un expert en recherche stratégique. Ta tâche est de décomposer une question en 4-6 sous-questions RÉALISTES et ACCESSIBLES pour une recherche web.
+
+CONTEXTE TEMPOREL IMPORTANT :
+- Nous sommes en ${currentMonth} ${currentYear}
+- Les données sur l'année ${currentYear} sont TRÈS LIMITÉES (année en cours, données récentes non indexées)
+- Privilégie les recherches sur ${currentYear - 1} et années antérieures pour obtenir des résultats
+- Pour des sujets récents, utilise des termes comme "récemment", "derniers mois", "tendances actuelles" plutôt que des années spécifiques
 
 IMPORTANT : Les sous-questions doivent être:
 - Formulées de manière à ce qu'on puisse trouver des réponses sur le web (articles, blogs, médias, sites spécialisés)
 - GÉNÉRALES et pas trop spécifiques (éviter de demander des listes exhaustives impossible à obtenir)
 - Orientées vers ce qui est DISPONIBLE publiquement en ligne
 - CONCRÈTES et factuelles (éviter les questions trop académiques ou théoriques)
+- ÉVITER les demandes d'informations trop récentes ou sur l'année en cours qui ne sont pas encore indexées
 
 Contexte des paramètres :
 - Géographie (${params.geography}/100): ${params.geography < 30 ? "Local/Régional" : params.geography < 70 ? "National" : "International/Global"}
@@ -93,14 +105,16 @@ Contexte des paramètres :
 Mots-clés prioritaires: ${keywords.join(", ")}
 
 Exemples de BONNES sous-questions (accessibles web):
-- "Quelles sont les principales innovations dans [domaine] en [période]?"
-- "Quels sont les acteurs clés et tendances de [sujet]?"
+- "Quelles sont les principales innovations dans [domaine] depuis ${currentYear - 2}?"
+- "Quels acteurs clés dominent le marché de [sujet] actuellement?"
 - "Quels articles de presse ou analyses ont parlé de [sujet] récemment?"
+- "Quelles tendances émergentes dans [domaine] ont été documentées en ${currentYear - 1}?"
 
 Exemples de MAUVAISES sous-questions (irréalistes):
-- "Liste exhaustive de tous les papiers sur arXiv en décembre 2025" ❌
+- "Liste exhaustive de tous les papiers sur arXiv en ${currentMonth} ${currentYear}" ❌
 - "Tous les repos GitHub avec étoiles, forks, dates de commit" ❌
-- "Chiffres comparatifs complets sur tous les benchmarks" ❌
+- "Chiffres comparatifs complets sur tous les benchmarks de ${currentYear}" ❌
+- "Quelles entreprises ont été créées en janvier ${currentYear}?" ❌
 
 Réponds UNIQUEMENT avec un JSON au format :
 {
@@ -146,12 +160,18 @@ async function executeWebSearch(subQuery: string, model: string): Promise<{ resu
 Question: ${subQuery}
 
 INSTRUCTIONS IMPORTANTES:
-1. Effectue une recherche web sur cette question (utilise le web search tool)
-2. Synthétise les informations trouvées en 2-4 paragraphes concis
-3. Cite les sources avec [titre](url)
-4. Si tu ne trouves PAS de résultats pertinents, dis-le clairement et explique pourquoi (sujet trop récent, trop spécifique, etc.)
-5. NE POSE JAMAIS de questions de clarification - réponds avec ce que tu trouves
-6. Concentre-toi sur les informations les plus récentes et pertinentes
+1. Effectue une recherche web approfondie sur cette question (utilise le web search tool)
+2. Explore PLUSIEURS sources différentes (articles, blogs, sites d'actualité, forums spécialisés)
+3. Synthétise les informations trouvées en 2-4 paragraphes concis
+4. Cite TOUTES les sources pertinentes avec le format [titre](url)
+5. Si les résultats sont limités ou peu pertinents :
+   - Mentionne quand même les sources que tu as trouvées
+   - Explique pourquoi il y a peu de résultats (sujet trop récent, trop spécifique, manque de données publiques, etc.)
+   - Suggère des pistes alternatives ou des informations connexes trouvées
+6. NE POSE JAMAIS de questions de clarification - réponds avec ce que tu trouves
+7. Concentre-toi sur les informations les plus récentes et pertinentes disponibles
+
+IMPORTANT: Même si les résultats ne sont pas parfaits, fournis une synthèse avec les sources trouvées plutôt que de dire "aucun résultat".
 
 Réponds maintenant avec une synthèse basée sur ta recherche web:`,
       {
@@ -421,8 +441,19 @@ export async function POST(request: NextRequest) {
           );
 
           // synthesis is already provided by the Responses API with web search
+          // Include both citations count and sources count for better visibility
+          const citationsCount = searchResults.length;
+          const sourcesCount = debugInfo.webSearchCalls.reduce((acc: number, call: any) => acc + (call.sourcesFound || 0), 0);
+
           controller.enqueue(
-            encoder.encode(encodeSSE("searchComplete", { index, subQuery, synthesis }))
+            encoder.encode(encodeSSE("searchComplete", {
+              index,
+              subQuery,
+              synthesis,
+              resultsCount: searchResults.length,
+              citationsCount,
+              sourcesCount,
+            }))
           );
 
           return {
