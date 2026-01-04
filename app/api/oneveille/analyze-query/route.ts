@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { supabase } from "@/lib/supabase/client";
+import { createResponseWithWebSearch } from "@/lib/openai/responses-client";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -76,25 +77,30 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = `Tu es un assistant expert en veille stratégique.
 
+IMPORTANT : Tu DOIS effectuer une recherche web pour enrichir tes suggestions de mots-clés et variations du sujet.
+
 Ta tâche est d'analyser une demande de veille et de suggérer :
-1. Les paramètres optimaux sur 3 axes (valeurs de 0 à 100) :
-   - geography (0 = très local, 50 = national, 100 = global/international)
-   - temporality (0 = dernière semaine, 25 = dernier mois, 50 = 3 mois, 75 = 6 mois, 100 = historique complet)
-   - focus (0 = purement business/marché, 50 = équilibré, 100 = purement technique)
+1. Les paramètres optimaux sur 3 axes (valeurs de 1 à 10) :
+   - geography (1 = très local/ville, 5 = national, 10 = global/international)
+   - temporality (1 = dernière semaine, 3 = dernier mois, 5 = 3 mois, 7 = 6 mois, 10 = historique complet)
+   - focus (1 = purement business/marché, 5 = équilibré, 10 = purement technique/innovation)
 
 2. Une liste de 8-12 mots-clés pertinents pour enrichir la recherche
+   - EFFECTUE une recherche web sur le sujet pour identifier les termes les plus actuels et pertinents
+   - Inclus les termes clés utilisés dans l'actualité et les articles récents sur ce sujet
 
-3. 3-4 variations du sujet pour inspirer l'utilisateur avec différents angles d'approche :
+3. 3-4 variations du sujet pour inspirer l'utilisateur avec différents angles d'approche
+   - UTILISE les résultats de ta recherche web pour proposer des angles d'approche cohérents et pertinents
    - Chaque variation doit offrir une perspective unique ou complémentaire
-   - Garde le sujet principal mais explore différents aspects ou niveaux de détail
+   - Garde le sujet principal mais explore différents aspects trouvés dans ta recherche
    - Sois créatif et pertinent pour enrichir la réflexion
 
 ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 'Réponds au format JSON suivant (commence ta réponse par { et termine par }) :'}
 {
   "parameters": {
-    "geography": <nombre 0-100>,
-    "temporality": <nombre 0-100>,
-    "focus": <nombre 0-100>
+    "geography": <nombre 1-10>,
+    "temporality": <nombre 1-10>,
+    "focus": <nombre 1-10>
   },
   "keywords": ["mot-clé 1", "mot-clé 2", ...],
   "variations": [
@@ -103,42 +109,29 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
     "Variation 3 du sujet",
     "Variation 4 du sujet (optionnel)"
   ],
-  "reasoning": "Explication brève de tes choix"
+  "reasoning": "Explication brève de tes choix basée sur ta recherche web"
 }`;
 
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-      {
-        role: "user",
-        content: `Analyse cette demande de veille et suggère les paramètres optimaux :\n\n"${query}"`,
-      },
-    ];
+    // Use Responses API with web search to get contextual suggestions
+    const userPrompt = `${systemPrompt}
 
-    // Build completion options
-    const completionOptions: OpenAI.Chat.ChatCompletionCreateParams = {
+Analyse cette demande de veille et suggère les paramètres optimaux (effectue d'abord une recherche web pour obtenir du contexte) :
+
+"${query}"`;
+
+    const response = await createResponseWithWebSearch(
       model,
-      messages,
-    };
+      userPrompt,
+      {
+        temperature: isReasoning ? undefined : 0.7,
+        max_output_tokens: 2000,
+        forceWebSearch: true,
+      }
+    );
 
-    // Only include temperature for non-reasoning models
-    // GPT-5 and o-series models don't support temperature
-    if (!isReasoning) {
-      completionOptions.temperature = 0.7;
-    }
-
-    // Add response_format only for models that support it
-    if (useStructuredOutput) {
-      completionOptions.response_format = { type: "json_object" };
-    }
-
-    const completion = await openai.chat.completions.create(completionOptions);
-
-    const result = completion.choices[0].message.content;
+    const result = response.outputText;
     if (!result) {
-      throw new Error("No response from OpenAI");
+      throw new Error("No response from Responses API");
     }
 
     // Parse JSON response
@@ -162,16 +155,23 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
       !Array.isArray(analysis.keywords) ||
       !Array.isArray(analysis.variations)
     ) {
-      throw new Error("Invalid response structure from OpenAI");
+      throw new Error("Invalid response structure from Responses API");
     }
 
-    console.log("✅ [ONEVEILLE] Analysis completed successfully");
+    // Convert from 1-10 scale to 0-100 scale for frontend sliders
+    // Formula: (value - 1) * (100 / 9) to map [1,10] to [0,100]
+    const convertToSliderScale = (value: number): number => {
+      const clamped = Math.min(10, Math.max(1, value));
+      return Math.round((clamped - 1) * (100 / 9));
+    };
+
+    console.log("✅ [ONEVEILLE] Analysis completed successfully with web search context");
 
     return NextResponse.json({
       parameters: {
-        geography: Math.min(100, Math.max(0, analysis.parameters.geography)),
-        temporality: Math.min(100, Math.max(0, analysis.parameters.temporality)),
-        focus: Math.min(100, Math.max(0, analysis.parameters.focus)),
+        geography: convertToSliderScale(analysis.parameters.geography),
+        temporality: convertToSliderScale(analysis.parameters.temporality),
+        focus: convertToSliderScale(analysis.parameters.focus),
       },
       keywords: analysis.keywords.slice(0, 12), // Limit to 12 keywords
       variations: analysis.variations.slice(0, 4), // Limit to 4 variations

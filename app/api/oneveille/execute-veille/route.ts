@@ -82,12 +82,10 @@ async function decompose
   const currentYear = now.getFullYear();
   const currentMonth = now.toLocaleString('fr-FR', { month: 'long' });
 
-  const systemPrompt = `Tu es un expert en recherche stratégique. Ta tâche est de décomposer une question en 4-6 sous-questions RÉALISTES et ACCESSIBLES pour une recherche web.
+  const systemPrompt = `Tu es un expert en recherche stratégique. Ta tâche est de décomposer une question en EXACTEMENT 4 sous-questions RÉALISTES et ACCESSIBLES pour une recherche web.
 
 CONTEXTE TEMPOREL IMPORTANT :
 - Nous sommes en ${currentMonth} ${currentYear}
-- Les données sur l'année ${currentYear} sont TRÈS LIMITÉES (année en cours, données récentes non indexées)
-- Privilégie les recherches sur ${currentYear - 1} et années antérieures pour obtenir des résultats
 - Pour des sujets récents, utilise des termes comme "récemment", "derniers mois", "tendances actuelles" plutôt que des années spécifiques
 
 IMPORTANT : Les sous-questions doivent être:
@@ -95,7 +93,6 @@ IMPORTANT : Les sous-questions doivent être:
 - GÉNÉRALES et pas trop spécifiques (éviter de demander des listes exhaustives impossible à obtenir)
 - Orientées vers ce qui est DISPONIBLE publiquement en ligne
 - CONCRÈTES et factuelles (éviter les questions trop académiques ou théoriques)
-- ÉVITER les demandes d'informations trop récentes ou sur l'année en cours qui ne sont pas encore indexées
 
 Contexte des paramètres :
 - Géographie (${params.geography}/100): ${params.geography < 30 ? "Local/Régional" : params.geography < 70 ? "National" : "International/Global"}
@@ -105,20 +102,19 @@ Contexte des paramètres :
 Mots-clés prioritaires: ${keywords.join(", ")}
 
 Exemples de BONNES sous-questions (accessibles web):
-- "Quelles sont les principales innovations dans [domaine] depuis ${currentYear - 2}?"
-- "Quels acteurs clés dominent le marché de [sujet] actuellement?"
-- "Quels articles de presse ou analyses ont parlé de [sujet] récemment?"
-- "Quelles tendances émergentes dans [domaine] ont été documentées en ${currentYear - 1}?"
+- "Quelles sont les principales innovations dans [domaine] récemment ?"
+- "Quels acteurs clés dominent le marché de [sujet] actuellement ?"
+- "Quels articles de presse ou analyses ont parlé de [sujet] récemment ?"
+- "Quelles tendances émergentes dans [domaine] sont documentées ?"
 
 Exemples de MAUVAISES sous-questions (irréalistes):
 - "Liste exhaustive de tous les papiers sur arXiv en ${currentMonth} ${currentYear}" ❌
 - "Tous les repos GitHub avec étoiles, forks, dates de commit" ❌
-- "Chiffres comparatifs complets sur tous les benchmarks de ${currentYear}" ❌
-- "Quelles entreprises ont été créées en janvier ${currentYear}?" ❌
+- "Chiffres comparatifs complets sur tous les benchmarks" ❌
 
-Réponds UNIQUEMENT avec un JSON au format :
+Réponds UNIQUEMENT avec un JSON au format (EXACTEMENT 4 sous-questions) :
 {
-  "subQueries": ["sous-question 1", "sous-question 2", ...]
+  "subQueries": ["sous-question 1", "sous-question 2", "sous-question 3", "sous-question 4"]
 }`;
 
   const completionOptions: OpenAI.Chat.ChatCompletionCreateParams = {
@@ -175,8 +171,8 @@ IMPORTANT: Même si les résultats ne sont pas parfaits, fournis une synthèse a
 
 Réponds maintenant avec une synthèse basée sur ta recherche web:`,
       {
-        temperature: 0.7,
-        max_output_tokens: 2500,
+        temperature: 0.2,
+        max_output_tokens: 4000,
         forceWebSearch: true,
       }
     );
@@ -287,14 +283,17 @@ Format attendu (Markdown) :
 ## 🔍 Analyse Détaillée
 [Analyse approfondie des thèmes trouvés, même si limitée]
 
-## 💡 Recommandations Stratégiques
-1. [Recommandation basée sur les résultats]
-2. [Axes à approfondir si données manquantes]
-
 ## 📚 Sources Clés
-[Liste des sources principales trouvées]
+[Liste des sources principales trouvées avec leurs URLs]
 
-Si des recherches n'ont pas donné de résultats, indique-le clairement et suggère des pistes alternatives.`;
+## 🚀 Axes d'Exploration et d'Approfondissement
+[Suggère 3-5 axes ou pistes à explorer pour aller plus loin sur ce sujet]
+- Axe 1 : [Domaine ou angle spécifique à creuser]
+- Axe 2 : [Question connexe ou aspect complémentaire]
+- Axe 3 : [Tendance émergente à surveiller]
+- Axe 4 : [Données manquantes qui mériteraient une veille dédiée]
+
+Si des recherches n'ont pas donné de résultats, indique-le clairement et intègre ces manques dans les axes d'approfondissement.`;
 
   const resultsContext = results
     .map((r, i) => `\n### Recherche ${i + 1}: ${r.subQuery}\n${r.synthesis}`)
