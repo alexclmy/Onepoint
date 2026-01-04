@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { supabase } from "@/lib/supabase/client";
-import { createResponseWithWebSearch } from "@/lib/openai/responses-client";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -77,8 +76,6 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = `Tu es un assistant expert en veille stratégique.
 
-IMPORTANT : Tu DOIS effectuer une recherche web pour enrichir tes suggestions de mots-clés et variations du sujet.
-
 Ta tâche est d'analyser une demande de veille et de suggérer :
 1. Les paramètres optimaux sur 3 axes (valeurs de 1 à 10) :
    - geography (1 = très local/ville, 5 = national, 10 = global/international)
@@ -86,13 +83,14 @@ Ta tâche est d'analyser une demande de veille et de suggérer :
    - focus (1 = purement business/marché, 5 = équilibré, 10 = purement technique/innovation)
 
 2. Une liste de 8-12 mots-clés pertinents pour enrichir la recherche
-   - EFFECTUE une recherche web sur le sujet pour identifier les termes les plus actuels et pertinents
-   - Inclus les termes clés utilisés dans l'actualité et les articles récents sur ce sujet
+   - Identifie les termes clés et concepts importants liés au sujet
+   - Inclus des termes généraux et spécifiques, en français et anglais si pertinent
+   - Pense aux synonymes et termes connexes couramment utilisés
 
 3. 3-4 variations du sujet pour inspirer l'utilisateur avec différents angles d'approche
-   - UTILISE les résultats de ta recherche web pour proposer des angles d'approche cohérents et pertinents
-   - Chaque variation doit offrir une perspective unique ou complémentaire
-   - Garde le sujet principal mais explore différents aspects trouvés dans ta recherche
+   - Propose des angles d'approche cohérents et complémentaires
+   - Chaque variation doit offrir une perspective unique
+   - Garde le sujet principal mais explore différents aspects (business, technique, marché, innovation, etc.)
    - Sois créatif et pertinent pour enrichir la réflexion
 
 ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 'Réponds au format JSON suivant (commence ta réponse par { et termine par }) :'}
@@ -109,29 +107,44 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
     "Variation 3 du sujet",
     "Variation 4 du sujet (optionnel)"
   ],
-  "reasoning": "Explication brève de tes choix basée sur ta recherche web"
+  "reasoning": "Explication brève de tes choix"
 }`;
 
-    // Use Responses API with web search to get contextual suggestions
-    const userPrompt = `${systemPrompt}
-
-Analyse cette demande de veille et suggère les paramètres optimaux (effectue d'abord une recherche web pour obtenir du contexte) :
-
-"${query}"`;
-
-    const response = await createResponseWithWebSearch(
-      model,
-      userPrompt,
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
-        temperature: isReasoning ? undefined : 0.7,
-        max_output_tokens: 2000,
-        forceWebSearch: true,
-      }
-    );
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: `Analyse cette demande de veille et suggère les paramètres optimaux :\n\n"${query}"`,
+      },
+    ];
 
-    const result = response.outputText;
+    // Build completion options
+    const completionOptions: OpenAI.Chat.ChatCompletionCreateParams = {
+      model,
+      messages,
+    };
+
+    // Only include temperature for non-reasoning models
+    // GPT-5 and o-series models don't support temperature
+    if (!isReasoning) {
+      completionOptions.temperature = 0.7;
+    }
+
+    // Add response_format only for models that support it
+    if (useStructuredOutput) {
+      completionOptions.response_format = { type: "json_object" };
+    }
+
+    console.log("🔍 [ONEVEILLE] Calling Chat Completions API for query analysis...");
+
+    const completion = await openai.chat.completions.create(completionOptions);
+
+    const result = completion.choices[0].message.content;
     if (!result) {
-      throw new Error("No response from Responses API");
+      throw new Error("No response from OpenAI");
     }
 
     // Parse JSON response
@@ -155,7 +168,7 @@ Analyse cette demande de veille et suggère les paramètres optimaux (effectue d
       !Array.isArray(analysis.keywords) ||
       !Array.isArray(analysis.variations)
     ) {
-      throw new Error("Invalid response structure from Responses API");
+      throw new Error("Invalid response structure from OpenAI");
     }
 
     // Convert from 1-10 scale to 0-100 scale for frontend sliders
@@ -165,7 +178,7 @@ Analyse cette demande de veille et suggère les paramètres optimaux (effectue d
       return Math.round((clamped - 1) * (100 / 9));
     };
 
-    console.log("✅ [ONEVEILLE] Analysis completed successfully with web search context");
+    console.log("✅ [ONEVEILLE] Analysis completed successfully");
 
     return NextResponse.json({
       parameters: {
