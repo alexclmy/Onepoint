@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface NavItem {
   name: string;
@@ -278,7 +279,11 @@ export function Sidebar() {
         <Separator />
 
         {/* Footer */}
-        <div className="p-4">
+        <div className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Thème</span>
+            <ThemeToggle />
+          </div>
           <div className="rounded-lg bg-muted p-3">
             <p className="text-xs text-muted-foreground">
               Alexandre Coulmy - Onepoint
