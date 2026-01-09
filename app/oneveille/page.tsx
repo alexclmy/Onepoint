@@ -273,24 +273,60 @@ export default function OneVeillePage() {
               size="lg"
               className="w-full"
             >
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyse en cours...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Analyser et affiner ma demande
-                </>
-              )}
+              <Sparkles className="mr-2 h-4 w-4" />
+              Analyser et affiner ma demande
             </Button>
           </CardContent>
         </Card>
 
+        {/* Analysis Loading State */}
+        {isAnalyzing && (
+          <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 animate-pulse">
+            <CardContent className="pt-6 pb-6">
+              <div className="flex flex-col items-center justify-center space-y-4 text-center">
+                <div className="relative">
+                  <div className="absolute inset-0 animate-ping">
+                    <Sparkles className="h-12 w-12 text-primary opacity-75" />
+                  </div>
+                  <Sparkles className="h-12 w-12 text-primary relative z-10" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Analyse de votre demande en cours...
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Notre IA analyse votre sujet et prépare des suggestions personnalisées pour affiner votre veille stratégique.
+                    Cela ne prendra que quelques secondes.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-primary">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm font-medium">Traitement en cours...</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Step 2: Parameters Adjustment (shown after analysis) */}
-        {hasAnalyzed && (
+        {hasAnalyzed && !isAnalyzing && (
           <>
+            <Card className="border-2 border-green-500/50 bg-green-500/5 animate-in slide-in-from-top duration-500">
+              <CardContent className="pt-6 pb-4">
+                <div className="flex items-center gap-3 text-green-600 dark:text-green-400">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/20">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Analyse terminée !</p>
+                    <p className="text-sm text-muted-foreground">
+                      Ajustez les paramètres ci-dessous selon vos besoins
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Paramètres de veille</CardTitle>
