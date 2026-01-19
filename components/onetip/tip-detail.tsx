@@ -7,8 +7,6 @@ import { ThumbsUp, ExternalLink, ArrowLeft } from "lucide-react";
 import { OneTip } from "@/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 interface TipDetailProps {
   tip: OneTip;
@@ -93,9 +91,10 @@ export function TipDetail({ tip, onUpvote }: TipDetailProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="prose prose-neutral dark:prose-invert max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{tip.content}</ReactMarkdown>
-          </div>
+          <div
+            className="prose prose-neutral dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-muted prose-pre:border prose-img:rounded-lg prose-img:shadow-md"
+            dangerouslySetInnerHTML={{ __html: tip.content }}
+          />
         </CardContent>
       </Card>
     </div>

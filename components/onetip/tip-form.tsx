@@ -21,8 +21,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { RichTextEditor } from "./rich-text-editor";
 
 interface TipFormProps {
   onSubmit: (tip: {
@@ -47,6 +48,7 @@ const categories = [
 export function TipForm({ onSubmit }: TipFormProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -57,6 +59,43 @@ export function TipForm({ onSubmit }: TipFormProps) {
     linkUrl: "",
     category: "general",
   });
+
+  const handleHeaderImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setFormData((prev) => ({ ...prev, imageUrl: data.url }));
+      toast({
+        title: "Succès",
+        description: "L'image a été uploadée avec succès",
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'uploader l'image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,29 +214,62 @@ export function TipForm({ onSubmit }: TipFormProps) {
             <Label htmlFor="content">
               Contenu détaillé <span className="text-destructive">*</span>
             </Label>
-            <Textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Contenu détaillé en Markdown (titres, listes, code, etc.)"
-              rows={10}
-              required
-              className="font-mono text-sm"
+            <RichTextEditor
+              content={formData.content}
+              onChange={(content) => setFormData({ ...formData, content })}
+              placeholder="Commencez à écrire votre tip..."
             />
             <p className="text-xs text-muted-foreground">
-              Vous pouvez utiliser le format Markdown pour formater votre contenu (titres avec #, listes, code avec ```, etc.)
+              Utilisez les outils de formatage ci-dessus pour structurer votre contenu
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="imageUrl">URL de l'image (optionnel)</Label>
-            <Input
-              id="imageUrl"
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              placeholder="https://exemple.com/image.jpg"
-            />
+            <Label htmlFor="imageUrl">Image de couverture (optionnel)</Label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  id="imageUrl"
+                  type="url"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  placeholder="https://exemple.com/image.jpg"
+                  className="flex-1"
+                />
+                <div className="relative">
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleHeaderImageUpload}
+                    disabled={isUploadingImage}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isUploadingImage}
+                    onClick={() => document.getElementById("image-upload")?.click()}
+                  >
+                    {isUploadingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              {formData.imageUrl && (
+                <div className="relative w-full h-32 rounded-md overflow-hidden border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={formData.imageUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
