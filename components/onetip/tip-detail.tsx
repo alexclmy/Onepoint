@@ -92,7 +92,7 @@ export function TipDetail({ tip, onUpvote }: TipDetailProps) {
         </CardHeader>
         <CardContent>
           <div
-            className="prose prose-neutral dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-muted prose-pre:border prose-img:rounded-lg prose-img:shadow-md"
+            className="tiptap-content"
             dangerouslySetInnerHTML={{ __html: tip.content }}
           />
         </CardContent>

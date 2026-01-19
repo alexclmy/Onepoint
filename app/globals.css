@@ -71,6 +71,10 @@
   pointer-events: none;
 }
 
+/* Tiptap Content Display (for viewing tips) */
+.tiptap-content h1,
+.tiptap-content h2,
+.tiptap-content h3,
 .ProseMirror h1,
 .ProseMirror h2,
 .ProseMirror h3 {
@@ -79,39 +83,48 @@
   margin-bottom: 0.75rem;
 }
 
+.tiptap-content h1,
 .ProseMirror h1 {
   font-size: 2rem;
   line-height: 2.5rem;
 }
 
+.tiptap-content h2,
 .ProseMirror h2 {
   font-size: 1.5rem;
   line-height: 2rem;
 }
 
+.tiptap-content h3,
 .ProseMirror h3 {
   font-size: 1.25rem;
   line-height: 1.75rem;
 }
 
+.tiptap-content ul,
+.tiptap-content ol,
 .ProseMirror ul,
 .ProseMirror ol {
   padding-left: 1.5rem;
   margin: 1rem 0;
 }
 
+.tiptap-content ul,
 .ProseMirror ul {
   list-style-type: disc;
 }
 
+.tiptap-content ol,
 .ProseMirror ol {
   list-style-type: decimal;
 }
 
+.tiptap-content li,
 .ProseMirror li {
   margin: 0.25rem 0;
 }
 
+.tiptap-content blockquote,
 .ProseMirror blockquote {
   border-left: 4px solid hsl(var(--border));
   padding-left: 1rem;
@@ -120,6 +133,7 @@
   color: hsl(var(--muted-foreground));
 }
 
+.tiptap-content code,
 .ProseMirror code {
   background-color: hsl(var(--muted));
   padding: 0.125rem 0.375rem;
@@ -129,6 +143,7 @@
     "Liberation Mono", "Courier New", monospace;
 }
 
+.tiptap-content pre,
 .ProseMirror pre {
   background-color: hsl(var(--muted));
   border: 1px solid hsl(var(--border));
@@ -138,13 +153,16 @@
   overflow-x: auto;
 }
 
+.tiptap-content pre code,
 .ProseMirror pre code {
   background-color: transparent;
   padding: 0;
   border-radius: 0;
   color: inherit;
+  font-size: inherit;
 }
 
+.tiptap-content img,
 .ProseMirror img {
   max-width: 100%;
   height: auto;
@@ -152,24 +170,47 @@
   margin: 1rem 0;
 }
 
+.tiptap-content a,
 .ProseMirror a {
   color: hsl(var(--primary));
   text-decoration: underline;
   cursor: pointer;
 }
 
+.tiptap-content a:hover,
 .ProseMirror a:hover {
   opacity: 0.8;
 }
 
+.tiptap-content p,
 .ProseMirror p {
   margin: 0.75rem 0;
+  line-height: 1.6;
 }
 
+.tiptap-content > *:first-child,
 .ProseMirror > *:first-child {
   margin-top: 0;
 }
 
+.tiptap-content > *:last-child,
 .ProseMirror > *:last-child {
   margin-bottom: 0;
 }
+
+/* Strong and emphasis */
+.tiptap-content strong,
+.ProseMirror strong {
+  font-weight: 700;
+}
+
+.tiptap-content em,
+.ProseMirror em {
+  font-style: italic;
+}
+
+.tiptap-content s,
+.ProseMirror s {
+  text-decoration: line-through;
+}
+
