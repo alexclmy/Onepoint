@@ -39,37 +39,49 @@ export async function POST(request: NextRequest) {
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `onetip/${fileName}`;
 
-    // Convert File to ArrayBuffer then to Buffer
+    console.log("[UPLOAD] Uploading file:", filePath, "size:", file.size, "type:", file.type);
+
+    // Convert File to ArrayBuffer then to Uint8Array
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const uint8Array = new Uint8Array(arrayBuffer);
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from("images")
-      .upload(filePath, buffer, {
+      .upload(filePath, uint8Array, {
         contentType: file.type,
         cacheControl: "3600",
         upsert: false,
       });
 
     if (error) {
-      console.error("Supabase storage error:", error);
+      console.error("[UPLOAD] Supabase storage error:", error);
       return NextResponse.json(
-        { error: "Failed to upload image" },
+        {
+          error: "Failed to upload image",
+          details: error.message,
+        },
         { status: 500 }
       );
     }
+
+    console.log("[UPLOAD] Upload successful:", data);
 
     // Get public URL
     const {
       data: { publicUrl },
     } = supabase.storage.from("images").getPublicUrl(filePath);
 
+    console.log("[UPLOAD] Public URL:", publicUrl);
+
     return NextResponse.json({ url: publicUrl });
   } catch (error) {
-    console.error("Error in POST /api/upload:", error);
+    console.error("[UPLOAD] Error in POST /api/upload:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

@@ -114,6 +114,57 @@ export default function OneTipPage() {
     }
   };
 
+  const handleEditTip = async (id: string, tipData: {
+    title: string;
+    description: string;
+    content: string;
+    imageUrl?: string;
+    linkUrl?: string;
+    category: string;
+  }) => {
+    try {
+      const response = await fetch(`/api/onetip/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(tipData),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Refresh tips list
+      await fetchTips();
+    } catch (error) {
+      console.error("Error editing tip:", error);
+      throw error;
+    }
+  };
+
+  const handleDeleteTip = async (id: string) => {
+    try {
+      const response = await fetch(`/api/onetip/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Remove tip from local state
+      setTips((prevTips) => prevTips.filter((tip) => tip.id !== id));
+    } catch (error) {
+      console.error("Error deleting tip:", error);
+      throw error;
+    }
+  };
+
   const handleUpvote = async (id: string) => {
     try {
       const response = await fetch(`/api/onetip/${id}/upvote`, {
@@ -204,7 +255,13 @@ export default function OneTipPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTips.map((tip) => (
-              <TipCard key={tip.id} tip={tip} onUpvote={handleUpvote} />
+              <TipCard
+                key={tip.id}
+                tip={tip}
+                onUpvote={handleUpvote}
+                onEdit={handleEditTip}
+                onDelete={handleDeleteTip}
+              />
             ))}
           </div>
         )}

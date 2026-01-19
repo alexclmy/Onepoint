@@ -17,29 +17,88 @@ Pour permettre l'upload d'images dans OneTip, vous devez créer un bucket de sto
    - **Allowed MIME types**: Laisser vide pour accepter tous les types d'images
 6. Cliquez sur **Create bucket**
 
-### Étapes via SQL
+### ⚠️ IMPORTANT : Configurer les RLS Policies
 
-Vous pouvez aussi créer le bucket via SQL :
+Même avec un bucket public, vous devez configurer les Row Level Security (RLS) policies pour permettre l'upload.
+
+1. Dans la section **Storage** > **Policies**
+2. Cliquez sur **New policy** pour le bucket `images`
+3. Créez les policies suivantes :
+
+#### Policy 1: Lecture publique (SELECT)
+- **Policy name**: `Allow public read access`
+- **Allowed operation**: SELECT
+- **Policy definition**: `true` (permet à tous de lire)
 
 ```sql
--- Créer le bucket
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('images', 'images', true);
+CREATE POLICY "Allow public read access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'images');
+```
 
--- Configurer les policies pour permettre l'upload et la lecture
+#### Policy 2: Upload public (INSERT)
+- **Policy name**: `Allow public uploads`
+- **Allowed operation**: INSERT
+- **Policy definition**: `true` (permet à tous d'uploader)
+
+```sql
+CREATE POLICY "Allow public uploads"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'images');
+```
+
+#### Policy 3: Update public (UPDATE)
+- **Policy name**: `Allow public updates`
+- **Allowed operation**: UPDATE
+- **Policy definition**: `true`
+
+```sql
+CREATE POLICY "Allow public updates"
+ON storage.objects FOR UPDATE
+USING (bucket_id = 'images');
+```
+
+#### Policy 4: Delete public (DELETE)
+- **Policy name**: `Allow public deletes`
+- **Allowed operation**: DELETE
+- **Policy definition**: `true`
+
+```sql
+CREATE POLICY "Allow public deletes"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'images');
+```
+
+### Script SQL complet
+
+Exécutez ce script dans le **SQL Editor** de Supabase :
+
+```sql
+-- Créer le bucket (si pas déjà fait via l'interface)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('images', 'images', true, 5242880, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- Supprimer les anciennes policies si elles existent
+DROP POLICY IF EXISTS "Allow public read access" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public uploads" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public updates" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public deletes" ON storage.objects;
+
+-- Créer les policies pour permettre toutes les opérations
 CREATE POLICY "Allow public read access"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'images');
 
-CREATE POLICY "Allow authenticated uploads"
+CREATE POLICY "Allow public uploads"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'images');
 
-CREATE POLICY "Allow authenticated updates"
+CREATE POLICY "Allow public updates"
 ON storage.objects FOR UPDATE
 USING (bucket_id = 'images');
 
-CREATE POLICY "Allow authenticated deletes"
+CREATE POLICY "Allow public deletes"
 ON storage.objects FOR DELETE
 USING (bucket_id = 'images');
 ```
