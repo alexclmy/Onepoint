@@ -20,9 +20,12 @@ import { createResponseWithWebSearch } from "@/lib/openai/responses-client";
 
 const log = createModuleLogger('ExecuteVeille');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+function getOpenAI() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -130,7 +133,7 @@ Réponds UNIQUEMENT avec un JSON au format (EXACTEMENT 4 sous-questions) :
     completionOptions.temperature = 0.7;
   }
 
-  const response = await openai.chat.completions.create(completionOptions);
+  const response = await getOpenAI().chat.completions.create(completionOptions);
   const result = response.choices[0].message.content;
 
   if (!result) {
@@ -342,7 +345,7 @@ Si des recherches n'ont pas donné de résultats, indique-le clairement et intè
     completionOptions.temperature = 0.7;
   }
 
-  const response = await openai.chat.completions.create(completionOptions);
+  const response = await getOpenAI().chat.completions.create(completionOptions);
   const finalReport = response.choices[0].message.content || "";
 
   log.info('Final synthesis generated', {
@@ -387,7 +390,7 @@ async function synthesizeSearchResults(
     completionOptions.temperature = 0.7;
   }
 
-  const response = await openai.chat.completions.create(completionOptions);
+  const response = await getOpenAI().chat.completions.create(completionOptions);
   return response.choices[0].message.content || "";
 }
 

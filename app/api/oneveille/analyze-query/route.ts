@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { supabase } from "@/lib/supabase/client";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+function getOpenAI() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -140,7 +143,7 @@ ${useStructuredOutput ? 'Réponds UNIQUEMENT avec un JSON valide au format :' : 
 
     console.log("🔍 [ONEVEILLE] Calling Chat Completions API for query analysis...");
 
-    const completion = await openai.chat.completions.create(completionOptions);
+    const completion = await getOpenAI().chat.completions.create(completionOptions);
 
     const result = completion.choices[0].message.content;
     if (!result) {

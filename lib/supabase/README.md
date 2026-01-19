@@ -19,6 +19,9 @@ Migration pour ajouter les experts prédéfinis à une base de données existant
 ### `migration-veille.sql`
 Migration pour ajouter la table `veille_history` à une base de données existante.
 
+### `migration-onetip.sql`
+Migration pour ajouter la table `onetip` (boîte à outils et astuces pour consultants) à une base de données existante.
+
 ## 🚀 Comment Appliquer les Migrations
 
 ### Option 1 : Base de données vide (nouveau projet)
@@ -44,6 +47,14 @@ Migration pour ajouter la table `veille_history` à une base de données existan
 3. Allez dans **SQL Editor**
 4. Créez une nouvelle requête
 5. Copiez le contenu de `migration-experts.sql`
+6. Cliquez sur **Run**
+
+#### Pour ajouter la table onetip :
+1. Connectez-vous à [Supabase Dashboard](https://app.supabase.com)
+2. Sélectionnez votre projet
+3. Allez dans **SQL Editor**
+4. Créez une nouvelle requête
+5. Copiez le contenu de `migration-onetip.sql`
 6. Cliquez sur **Run**
 
 ## ✅ Vérification
@@ -118,3 +129,52 @@ USING (true);
 ```
 
 **Note** : Adaptez ces policies selon vos besoins de sécurité.
+
+## 📦 Structure de la Table onetip
+
+```sql
+CREATE TABLE onetip (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  content TEXT NOT NULL,
+  image_url TEXT,
+  link_url TEXT,
+  category TEXT NOT NULL DEFAULT 'general',
+  upvotes INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+### Catégories disponibles :
+- `llm` : Astuces liées aux LLM
+- `tools` : Outils utiles
+- `process` : Processus et méthodologies
+- `communication` : Communication et présentation
+- `analysis` : Analyse et frameworks
+- `general` : Général
+
+### RLS Policies pour onetip
+
+```sql
+-- Policy pour lire les tips
+CREATE POLICY "Allow read access to tips"
+ON onetip FOR SELECT
+USING (true);
+
+-- Policy pour créer des tips
+CREATE POLICY "Allow insert access to tips"
+ON onetip FOR INSERT
+WITH CHECK (true);
+
+-- Policy pour mettre à jour des tips (upvote, etc.)
+CREATE POLICY "Allow update access to tips"
+ON onetip FOR UPDATE
+USING (true);
+
+-- Policy pour supprimer des tips
+CREATE POLICY "Allow delete access to tips"
+ON onetip FOR DELETE
+USING (true);
+```

@@ -164,6 +164,28 @@ export interface VeilleHistory {
   updatedAt: Date;
 }
 
+// OneTip Types
+export interface OneTip {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  imageUrl?: string;
+  linkUrl?: string;
+  category: string;
+  upvotes: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type TipCategory =
+  | "llm"
+  | "tools"
+  | "process"
+  | "communication"
+  | "analysis"
+  | "general";
+
 // Unified Report Type (for History page)
 export type Report =
   | { type: "analysis"; data: Analysis }
